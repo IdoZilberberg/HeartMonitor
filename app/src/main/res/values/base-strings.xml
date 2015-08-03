@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+    <string name="app_name">Heartrate Monitor</string>
+    <string name="intro_message">
+        <![CDATA[
+            My heart rate monitor app
+        ]]>
+    </string>
+</resources>
