@@ -14,17 +14,18 @@
      limitations under the License.
 -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
-      xmlns:yourapp="http://schemas.android.com/apk/res-auto">
-    <item android:id="@+id/menu_switch_user"
+      xmlns:support="http://schemas.android.com/apk/res-auto">
+<!--    <item android:id="@+id/menu_switch_user"
           android:title="@string/menu_switch_user"
-          android:orderInCategory="100"
-          yourapp:showAsAction="withText"/>
-    <item android:id="@+id/menu_scan"
-          android:title="@string/menu_scan"
-          android:orderInCategory="101"
-          yourapp:showAsAction="ifRoom"/>
-    <item android:id="@+id/menu_stop"
-          android:title="@string/menu_stop"
-          android:orderInCategory="102"
-          yourapp:showAsAction="ifRoom"/>
+          support:showAsAction="ifRoom"/>-->
+    <item android:id="@+id/menu_connect"
+          android:title="@string/menu_connect"
+          support:showAsAction="always"/>
+    <item android:id="@+id/menu_disconnect"
+          android:title="@string/menu_disconnect"
+          support:showAsAction="always"/>
+    <item
+        android:id="@+id/menu_settings"
+        android:title="@string/menu_settings"
+        support:showAsAction="never"/>
 </menu>
