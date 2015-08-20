@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -22,6 +23,7 @@ public class MainActivity extends AppCompatActivity {
 
   private final static String TAG = MainActivity.class.getSimpleName();
   private ConnectionState connectionState = DISCONNECTED;
+  private int lastHeartRate = 0;
   private TextView heartRateText;
   private HRSensorService hrSensorBroadcastService;
   private boolean serviceBound = false;
@@ -109,7 +111,12 @@ public class MainActivity extends AppCompatActivity {
       bindService(hrSensorServiceIntent, bleServiceConnection, BIND_AUTO_CREATE);
       serviceBound = true;
     }
+    setHeartRatePending();
+  }
+
+  private void setHeartRatePending() {
     heartRateText.setText(R.string.heartrate_pending);
+    lastHeartRate = 0;
   }
 
   private void disconnectHRSensor() {
@@ -124,8 +131,13 @@ public class MainActivity extends AppCompatActivity {
     if( serviceBound ) {
       unbindService(bleServiceConnection);
       serviceBound = false;
-      heartRateText.setText(R.string.heartrate_unknown);
+      setHeartRateUnknown();
     }
+  }
+
+  private void setHeartRateUnknown() {
+    heartRateText.setText(R.string.heartrate_unknown);
+    lastHeartRate = 0;
   }
 
   // Handles various events fired by the Service.
@@ -155,7 +167,20 @@ public class MainActivity extends AppCompatActivity {
 
   private void refreshHeartRateText(String data) {
     if (data != null) {
-      heartRateText.setText(data);
+      try {
+        final int newHeartRate = Integer.parseInt(data);
+        if( newHeartRate > lastHeartRate ) {
+          heartRateText.setTextColor(Color.RED);
+        } else  {
+          heartRateText.setTextColor(Color.BLUE);
+        }
+        heartRateText.setText(data);
+        lastHeartRate = newHeartRate;
+      } catch (NumberFormatException e) {
+        heartRateText.setText(R.string.heartrate_error);
+        lastHeartRate = 0;
+      }
+
     }
   }
 
