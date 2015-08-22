@@ -44,4 +44,9 @@
     <string name="action_settings">Settings</string>
     <string name="heartrate_pending">...</string>
     <string name="heartrate_error">ERR</string>
+    <string name="setting_username">username</string>
+    <string name="setting_sensor_autoconnect">sensorAutoConnect</string>
+    <string name="setting_max_hr">Max heart rate</string>
+    <string name="setting_min_hr">Min heart rate</string>
+    <string name="default_username">NA</string>
 </resources>

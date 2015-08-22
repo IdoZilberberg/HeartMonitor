@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory android:title="HR Monitor General Settings">
+        <EditTextPreference
+            android:key="@string/setting_username"
+            android:title="User"
+            android:summary="Type username here"/>
+        <EditTextPreference
+            android:key="@string/setting_max_hr"
+            android:numeric="integer|signed"
+            android:title="Max heart rate"
+            android:summary="According to MAF formula"/>
+        <EditTextPreference
+            android:key="@string/setting_min_hr"
+            android:numeric="integer|signed"
+            android:title="Min heart rate"/>
+        <CheckBoxPreference
+            android:key="@string/setting_sensor_autoconnect"
+            android:title="Auto-connect sensor"
+            android:summary="Connect to the first heart rate sensor found"
+            android:defaultValue="false"/>
+
+    </PreferenceCategory>
+</PreferenceScreen>

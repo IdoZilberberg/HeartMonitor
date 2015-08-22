@@ -3,15 +3,14 @@ package com.example.idoz.hrmonitor.ble;
 import android.content.ComponentName;
 import android.content.ServiceConnection;
 import android.os.IBinder;
-import android.util.Log;
 
 /**
  * Created by izilberberg on 8/6/15.
  * // Code to manage Service lifecycle.
  */
-public class BleServiceConnection implements ServiceConnection {
+public class HRSensorServiceConnection implements ServiceConnection {
 
-  private final static String TAG = BleServiceConnection.class.getSimpleName();
+  private final static String TAG = HRSensorServiceConnection.class.getSimpleName();
 
   private HRSensorService HRSensorService;
 

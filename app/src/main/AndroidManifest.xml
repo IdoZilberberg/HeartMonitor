@@ -25,6 +25,8 @@ PackageManager.hasSystemFeature(FEATURE_BLUETOOTH_LE) -->
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".SettingsActivity"
+                  android:label="Settings"/>
 
         <service
             android:name=".ble.HRSensorService"
