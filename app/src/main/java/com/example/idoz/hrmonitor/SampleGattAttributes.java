@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.example.idoz.hrmonitor.ble;
+package com.example.idoz.hrmonitor;
 
 import java.util.HashMap;
 

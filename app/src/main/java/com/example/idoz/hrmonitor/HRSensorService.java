@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.example.idoz.hrmonitor.ble;
+package com.example.idoz.hrmonitor;
 
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
@@ -29,6 +29,7 @@ import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -46,9 +47,10 @@ public class HRSensorService extends Service {
   private final static String TAG = HRSensorService.class.getSimpleName();
   private BluetoothAdapter bluetoothAdapter;
 
-  public final static String deviceAddressConst = "00:22:D0:76:1C:E9"; // my device!
+  private final static String deviceAddressConst = "00:22:D0:76:1C:E9"; // my device!
   private String deviceAddress = deviceAddressConst;
   private BluetoothGatt deviceCommunicator;
+  private Handler handler;
 
   BluetoothGattCharacteristic heartRateCharacteristic = null;
   public static final String STATUS_HR_NOT_SUPPORTED =
@@ -77,18 +79,18 @@ public class HRSensorService extends Service {
   @Override
   public IBinder onBind(Intent intent) {
     Log.i(TAG, "Binding HR Sensor service");
-    connectToDevice(deviceAddressConst);
+    handler = new Handler();
+    connectToDevice();
     return binder;
   }
 
   @Override
   public boolean onUnbind(Intent intent) {
     disconnectFromDevice();
-    close();
     return super.onUnbind(intent);
   }
 
-  private boolean connectToDevice(final String deviceAddress) {
+  public boolean connectToDevice() {
     if( !initBluetooth() ) {
       return false;
     }
@@ -110,11 +112,19 @@ public class HRSensorService extends Service {
     }
     // We want to directly connect to the device, so we are setting the autoConnect
     // parameter to false.
-    Log.i(TAG, "Connecting to device (GATT server)");
+    Log.i(TAG, "Trying to connect to HR Sensor...");
     deviceCommunicator = device.connectGatt(this, false, deviceConnectionStateCallback);
     return true;
   }
 
+  private Runnable onServiceDiscoveryTimeout = new Runnable() {
+    @Override
+    public void run() {
+      Log.w(TAG, "Service discovery timed out!");
+      deviceCommunicator = null;
+      broadcastAction(ACTION_GATT_DISCONNECTED);
+    }
+  };
   // Implements callback methods for GATT events that the app cares about.
   // For example, connection change and services discovered.
   private final BluetoothGattCallback deviceConnectionStateCallback = new BluetoothGattCallback() {
@@ -122,13 +132,13 @@ public class HRSensorService extends Service {
     public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
       switch (newState) {
         case BluetoothProfile.STATE_CONNECTED:
-          Log.i(TAG, "deviceConnectionStateCallback - Connected to GATT server, starting service discovery.");
+          Log.i(TAG, "Connected to HR Sensor, starting service discovery.");
+          handler.postDelayed(onServiceDiscoveryTimeout, 5000);
           deviceCommunicator.discoverServices();
           break;
         case BluetoothProfile.STATE_DISCONNECTED:
-          Log.i(TAG, "Disconnected from GATT server.");
-          deviceCommunicator = null;
-          broadcastAction(ACTION_GATT_DISCONNECTED);
+          Log.i(TAG, "Disconnected from HR Sensor.");
+          tryClose();
           break;
       }
     }
@@ -136,12 +146,14 @@ public class HRSensorService extends Service {
     @Override
     public void onServicesDiscovered(BluetoothGatt gatt, int status) {
       if (status == BluetoothGatt.GATT_SUCCESS) {
-        Log.i(TAG, "deviceConnectionStateCallback - finished discovering services, enabling heart rate characteristic broadcast...");
+        handler.removeCallbacks(onServiceDiscoveryTimeout);
+        Log.i(TAG, "Finished discovering services, enabling heart rate broadcast...");
         locateHeartRateCharacteristic(gatt.getServices());
         setCharacteristicNotification(heartRateCharacteristic, true);
         broadcastAction(ACTION_GATT_CONNECTED);
       } else {
-        Log.w(TAG, "deviceConnectionStateCallback - might have failed to discover services. Status received: " + status);
+        Log.w(TAG, "Failed to discover services, cannot broadcast heart rate! State: " + status);
+        broadcastAction(ACTION_GATT_DISCONNECTED);
       }
     }
 
@@ -163,6 +175,16 @@ public class HRSensorService extends Service {
     }
   };
 
+  /**
+   * Disconnects an existing connection or cancel a pending connection. The disconnection result
+   * is reported asynchronously through the
+   * {@code BluetoothGattCallback#onConnectionStateChange(android.bluetooth.BluetoothGatt, int, int)}
+   * callback.
+   */
+  public void disconnectFromDevice() {
+    tryClose();
+  }
+
   private void locateHeartRateCharacteristic(List<BluetoothGattService> services) {
     heartRateCharacteristic = null;
     for (BluetoothGattService service : services) {
@@ -174,16 +196,15 @@ public class HRSensorService extends Service {
     if (heartRateCharacteristic == null) {
       Log.e(TAG, "Device does not support Heart Rate characteristic!");
       disconnectFromDevice();
-      close();
       broadcastAction(STATUS_HR_NOT_SUPPORTED);
     }
   }
+
 
   private void broadcastAction(final String action) {
     final Intent intent = new Intent(action);
     sendBroadcast(intent);
   }
-
 
   private void broadcastData(final String action,
                              final BluetoothGattCharacteristic characteristic) {
@@ -227,31 +248,19 @@ public class HRSensorService extends Service {
   }
 
   /**
-   * Disconnects an existing connection or cancel a pending connection. The disconnection result
-   * is reported asynchronously through the
-   * {@code BluetoothGattCallback#onConnectionStateChange(android.bluetooth.BluetoothGatt, int, int)}
-   * callback.
-   */
-  public void disconnectFromDevice() {
-    if (bluetoothAdapter == null || deviceCommunicator == null) {
-      Log.w(TAG, "BluetoothAdapter not initialized");
-      return;
-    }
-    Log.i(TAG, "Disconnecting from device (GATT server)");
-    deviceCommunicator.disconnect();
-    heartRateCharacteristic = null;
-  }
-
-  /**
    * After using a given BLE device, the app must call this method to ensure resources are
    * released properly.
    */
-  private void close() {
+  private void tryClose() {
+    Log.i(TAG, "tryClose(): closing connection to HR sensor");
     if (deviceCommunicator == null) {
       return;
     }
+    heartRateCharacteristic = null;
     deviceCommunicator.close();
+    deviceCommunicator.disconnect();
     deviceCommunicator = null;
+    broadcastAction(ACTION_GATT_DISCONNECTED);
   }
 
   /**

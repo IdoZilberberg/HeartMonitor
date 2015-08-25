@@ -29,7 +29,7 @@ PackageManager.hasSystemFeature(FEATURE_BLUETOOTH_LE) -->
                   android:label="Settings"/>
 
         <service
-            android:name=".ble.HRSensorService"
+            android:name=".HRSensorService"
             android:enabled="true" />
 
         <activity

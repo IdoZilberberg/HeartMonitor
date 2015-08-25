@@ -1,4 +1,4 @@
-package com.example.idoz.hrmonitor.ble;
+package com.example.idoz.hrmonitor;
 
 import android.content.ComponentName;
 import android.content.ServiceConnection;
