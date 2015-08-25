@@ -21,9 +21,18 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
+
+import org.joda.time.DateTime;
+
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 
 import static com.example.idoz.hrmonitor.ConnectionState.*;
 
@@ -52,31 +61,38 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private boolean isHRrSensorBroadcastReceiverRegistered = false;
   private int lastHeartRate = 0;
   private Handler handler;
+  private boolean isLogging = false;
 
   // view elements
   private TextView heartRateText;
   private TextView usernameText;
   private ImageView hrSensorConnectedIndicatorImageView;
+  private ToggleButton loggingToggleButton;
+  private ProgressBar heartRateMemoryDataProgressBar;
 
   // prefs
   private SharedPreferences SP;
+  private String username = "NA";
   private int maxHeartRate = MAX_HR_NOT_SET, minHeartRate = MIN_HR_NOT_SET;
+  private int maxHeartRateRecordsInMemory;
+  private final static String heartRateLoggerFilename = "heartRate.csv";
 
   // connections
   private HRSensorService hrSensorService;
   private BroadcastReceiver bluetoothStateReceiver;
+  private HeartRateDao dao;
 
-
-
+  private List<HeartRateRecord> records = new LinkedList<>();
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
     exitIfNoBluetoothCapability();
-    initUi();
-    createBluetoothStateReceiver();
-    registerReceiver(bluetoothStateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
     initPrefs();
+    populateUiVariables();
+    createBluetoothStateReceiver();
+    createDao();
+    registerReceiver(bluetoothStateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
     handler = new Handler();
 
   }
@@ -88,7 +104,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       isBluetoothStateReceiverRegistered = true;
     }
   }
-
 
   @Override
   protected void onStart() {
@@ -106,6 +121,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
   }
 
+
   @Override
   protected void onStop() {
     super.onStop();
@@ -116,6 +132,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   protected void onDestroy() {
     Log.i(TAG, "*** onDestroy()");
     super.onDestroy();
+    stopLogging();
     disconnectHRSensor();
     SP.unregisterOnSharedPreferenceChangeListener(this);
     tryUnregisterBluetoothStateReceiver();
@@ -177,19 +194,78 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
   }
 
-  private void initUi() {
+  @Override
+  public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+
+    if (getString(R.string.setting_username).equals(key)) {
+      usernameText.setText(sharedPreferences.getString(key, "NA"));
+      return;
+    }
+    if (getString(R.string.setting_max_hr).equals(key)) {
+      maxHeartRate = Integer.parseInt(sharedPreferences.getString(key, MAX_HR_NOT_SET_STR));
+      return;
+    }
+    if (getString(R.string.setting_min_hr).equals(key)) {
+      minHeartRate = Integer.parseInt(sharedPreferences.getString(key, MIN_HR_NOT_SET_STR));
+    }
+  }
+
+
+
+  private void createDao() {
+    dao = new HeartRateFileDao(heartRateLoggerFilename);
+  }
+
+  private void populateUiVariables() {
     setContentView(R.layout.activity_main);
     heartRateText = (TextView) findViewById(R.id.heartRateText);
     usernameText = (TextView) findViewById(R.id.usernameText);
+    usernameText.setText(username);
     hrSensorConnectedIndicatorImageView = (ImageView) findViewById(R.id.btConnectedIndicatorImage);
-    refreshUi();
+    heartRateMemoryDataProgressBar = (ProgressBar) findViewById(R.id.heartRateMemoryDataProgressBar);
+    heartRateMemoryDataProgressBar.setProgress(0);
+    heartRateMemoryDataProgressBar.setMax(maxHeartRateRecordsInMemory);
+    heartRateMemoryDataProgressBar.setScaleY(3f);
+    loggingToggleButton = (ToggleButton) findViewById(R.id.loggingToggleButton);
+    loggingToggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+      @Override
+      public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        if (isChecked) {
+          startLogging();
+        } else {
+          stopLogging();
+        }
+      }
+    });
   }
+
+  private void startLogging() {
+    isLogging = true;
+    Log.i(TAG, "Logging started");
+  }
+
+  private void stopLogging() {
+    isLogging = false;
+
+    final int count = flushHeartRateMemoryToStorage();
+    Log.i(TAG, "Logging stopped, saved " + count + " records. -1 denotes error.");
+  }
+
+  private int flushHeartRateMemoryToStorage() {
+    final int count = dao.saveHeartRateRecords(this, records);
+    if(count==-1) {
+      Toast.makeText(this, "Error saving log file", Toast.LENGTH_LONG);
+    }
+    records.clear();
+    heartRateMemoryDataProgressBar.setProgress(0);
+    return count;
+  }
+
 
   private void refreshUi()  {
     refreshHRSensorConnectionIndicator();
     invalidateOptionsMenu();
   }
-
 
   private void createBluetoothStateReceiver() {
 
@@ -227,6 +303,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
   }
 
+
   private void checkBluetoothEnabled() {
 
     Log.i(TAG, "checkBluetoothEnabled()");
@@ -243,7 +320,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       refreshUi();
     }
   }
-
 
   @Override
   // might be redundant because we have a listener on BT state which does this already
@@ -267,28 +343,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
   }
 
-  @Override
-  public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-
-    if (getString(R.string.setting_username).equals(key)) {
-      usernameText.setText(sharedPreferences.getString(key, "NA"));
-      return;
-    }
-    if (getString(R.string.setting_max_hr).equals(key)) {
-      maxHeartRate = Integer.parseInt(sharedPreferences.getString(key, MAX_HR_NOT_SET_STR));
-      return;
-    }
-    if (getString(R.string.setting_min_hr).equals(key)) {
-      minHeartRate = Integer.parseInt(sharedPreferences.getString(key, MIN_HR_NOT_SET_STR));
-    }
-  }
-
   private void initPrefs() {
     SP = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-    String username = SP.getString(getString(R.string.setting_username), getString(R.string.default_username));
+    username = SP.getString(getString(R.string.setting_username), getString(R.string.default_username));
     maxHeartRate = Integer.parseInt(SP.getString(getString(R.string.setting_max_hr), MAX_HR_NOT_SET_STR));
     minHeartRate = Integer.parseInt(SP.getString(getString(R.string.setting_min_hr), MIN_HR_NOT_SET_STR));
-    usernameText.setText(username);
+    maxHeartRateRecordsInMemory = 10; // To put in prefs
     SP.registerOnSharedPreferenceChangeListener(this);
   }
 
@@ -349,19 +409,37 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
   }
 
-  private void refreshHeartRateText(final String data) {
+  private void onReceiveHeartRateData(final String data) {
     if (data == null) {
       return;
     }
     try {
       final int newHeartRate = Integer.parseInt(data);
-      heartRateText.setTextColor(calculateHeartRateTextColor(newHeartRate, lastHeartRate));
-      heartRateText.setText(data);
+      refreshHeartRateText(newHeartRate);
       lastHeartRate = newHeartRate;
+      addRecordIfLogging(newHeartRate);
     } catch (NumberFormatException e) {
       setHeartRateError();
     }
 
+  }
+
+  private void addRecordIfLogging(int newHeartRate) {
+    if( !isLogging )  {
+      return;
+    }
+
+    if( records.size() >= maxHeartRateRecordsInMemory ) {
+      flushHeartRateMemoryToStorage();
+      //records.remove(0); // cut oldest record
+    }
+    records.add(new HeartRateRecord(username, new DateTime(), newHeartRate));
+    heartRateMemoryDataProgressBar.setProgress(records.size());
+  }
+
+  private void refreshHeartRateText(int newHeartRate) {
+    heartRateText.setTextColor(calculateHeartRateTextColor(newHeartRate, lastHeartRate));
+    heartRateText.setText(Integer.toString(newHeartRate));
   }
 
   private void setHeartRatePending() {
@@ -442,7 +520,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
           break;
 
         case HRSensorService.ACTION_DATA_AVAILABLE:
-          refreshHeartRateText(intent.getStringExtra(HRSensorService.EXTRA_DATA));
+          onReceiveHeartRateData(intent.getStringExtra(HRSensorService.EXTRA_DATA));
       }
     }
   };
