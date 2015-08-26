@@ -30,7 +30,6 @@ import android.widget.ToggleButton;
 
 import org.joda.time.DateTime;
 
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -49,6 +48,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private static final int REQUEST_ENABLE_BT = 1;
   private static final long connectionTimeoutDelayMillis = 4000L;
   private static final long delayOnReconnectAfterDisconnectMillis = 5000L;
+  private static final int maxHrCutoff = 200; // omit outlier values
+  private static final int minHrCutoff = 30; // omit outlier values
 
   private static final IntentFilter hrSensorServiceIntentFilter = createHrSensorIntentFilters();
 
@@ -75,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private String username = "NA";
   private int maxHeartRate = MAX_HR_NOT_SET, minHeartRate = MIN_HR_NOT_SET;
   private int maxHeartRateRecordsInMemory;
-  private final static String heartRateLoggerFilename = "heartRate.csv";
+  private final static String heartRateLoggerFilenamePrefix = "heartRate_";
 
   // connections
   private HRSensorService hrSensorService;
@@ -83,6 +84,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private HeartRateDao dao;
 
   private List<HeartRateRecord> records = new LinkedList<>();
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -99,7 +101,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
   private void tryRegisterBluetoothStateReceiver() {
     createBluetoothStateReceiver();
-    if( !isBluetoothStateReceiverRegistered ) {
+    if (!isBluetoothStateReceiverRegistered) {
       registerReceiver(bluetoothStateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
       isBluetoothStateReceiverRegistered = true;
     }
@@ -111,12 +113,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     Log.i(TAG, "*** onStart()");
     //checkBluetoothEnabled();
     checkBluetoothEnabled();
-    if(!bluetoothEnabled) {
+    if (!bluetoothEnabled) {
       return;
     }
     tryRegisterBluetoothStateReceiver();
     tryBindHRSensorService();
-    if( autoReconnect ) {
+    if (autoReconnect) {
       connectHRSensor();
     }
   }
@@ -140,7 +142,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   }
 
   private void tryUnregisterBluetoothStateReceiver() {
-    if( isBluetoothStateReceiverRegistered ) {
+    if (isBluetoothStateReceiverRegistered) {
       unregisterReceiver(bluetoothStateReceiver);
       isBluetoothStateReceiverRegistered = false;
     }
@@ -151,14 +153,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     // Inflate the menu; this adds items to the action bar if it is present.
     getMenuInflater().inflate(R.menu.menu_main, menu);
 
-    if( !bluetoothEnabled ) {
+    if (!bluetoothEnabled) {
       menu.findItem(R.id.menu_connect).setVisible(true);
       menu.findItem(R.id.menu_connect).setEnabled(false);
       menu.findItem(R.id.menu_disconnect).setVisible(false);
       return true;
     }
 
-    switch(hrSensorConnectionState) {
+    switch (hrSensorConnectionState) {
       case CONNECTING:
       case CONNECTED:
         menu.findItem(R.id.menu_connect).setVisible(false);
@@ -211,9 +213,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   }
 
 
-
   private void createDao() {
-    dao = new HeartRateFileDao(heartRateLoggerFilename);
+    dao = new HeartRateCsvDao(heartRateLoggerFilenamePrefix, maxHrCutoff, minHrCutoff);
   }
 
   private void populateUiVariables() {
@@ -253,7 +254,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
   private int flushHeartRateMemoryToStorage() {
     final int count = dao.saveHeartRateRecords(this, records);
-    if(count==-1) {
+    if (count == -1) {
       Toast.makeText(this, "Error saving log file", Toast.LENGTH_LONG);
     }
     records.clear();
@@ -262,14 +263,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   }
 
 
-  private void refreshUi()  {
+  private void refreshUi() {
     refreshHRSensorConnectionIndicator();
     invalidateOptionsMenu();
   }
 
   private void createBluetoothStateReceiver() {
 
-    if( bluetoothStateReceiver != null )  {
+    if (bluetoothStateReceiver != null) {
       return;
     }
 
@@ -279,7 +280,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         final String action = intent.getAction();
         if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
           final int bluetoothState = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
-          switch(bluetoothState) {
+          switch (bluetoothState) {
             case BluetoothAdapter.STATE_ON:
               bluetoothEnabled = true;
               break;
@@ -315,7 +316,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       bluetoothEnabled = false;
       Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
       startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-    } else  {
+    } else {
       bluetoothEnabled = true;
       refreshUi();
     }
@@ -335,9 +336,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   }
 
   private void refreshHRSensorConnectionIndicator() {
-    if( hrSensorConnectionState == CONNECTED ) {
+    if (hrSensorConnectionState == CONNECTED) {
       hrSensorConnectedIndicatorImageView.setVisibility(View.VISIBLE);
-    } else  {
+    } else {
       hrSensorConnectedIndicatorImageView.setVisibility(View.INVISIBLE);
     }
 
@@ -366,7 +367,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       Log.i(TAG, "connectHRSensor(): already connected");
       return;
     }
-    if(hrSensorService!=null) {
+    if (hrSensorService != null) {
       hrSensorConnectionState = CONNECTING;
       Log.i(TAG, "connectHRSensor() waiting to connect for " + connectionTimeoutDelayMillis + " millis");
       setHeartRatePending();
@@ -388,11 +389,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
   private void disconnectHRSensor() {
     Log.i(TAG, "disconnectHRSensor()");
-    if( DISCONNECTED == hrSensorConnectionState ) {
+    if (DISCONNECTED == hrSensorConnectionState) {
       Log.i(TAG, "disconnectHRSensor(): already disconnected.");
       return;
     }
-    if( hrSensorService != null ) {
+    if (hrSensorService != null) {
       hrSensorConnectionState = DISCONNECTING;
 //      setHeartRatePending();
 //      refreshUi();
@@ -425,11 +426,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   }
 
   private void addRecordIfLogging(int newHeartRate) {
-    if( !isLogging )  {
+    if (!isLogging) {
       return;
     }
 
-    if( records.size() >= maxHeartRateRecordsInMemory ) {
+    if (records.size() >= maxHeartRateRecordsInMemory) {
       flushHeartRateMemoryToStorage();
       //records.remove(0); // cut oldest record
     }
@@ -462,7 +463,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   }
 
 
-
   private int calculateHeartRateTextColor(final int newHR, final int oldHR) {
     if (newHR > maxHeartRate) {
       return Color.RED;
@@ -475,6 +475,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
     return Color.BLUE;
   }
+
   private Runnable reconnectAfterDisconnect = new Runnable() {
     @Override
     public void run() {
@@ -490,7 +491,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     @Override
     public void onReceive(Context context, Intent intent) {
       final String action = intent.getAction();
-      switch(action)  {
+      switch (action) {
 
         case HRSensorService.ACTION_GATT_CONNECTED:
           hrSensorConnectionState = CONNECTED;
@@ -505,7 +506,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
           Log.i(TAG, ">>> Received broadcast: HR sensor disconnected");
           setHeartRateUnknown();
           refreshUi();
-          if(autoReconnect) {
+          if (autoReconnect) {
             Log.w(TAG, "Disconnected unintentionally from HR sensor, trying to reconnect in " + delayOnReconnectAfterDisconnectMillis + " millis...");
             hrSensorConnectionState = CONNECTING;
             refreshUi();
@@ -533,7 +534,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     return intentFilter;
   }
 
-  /** Defines callbacks for service binding, passed to bindService() */
+  /**
+   * Defines callbacks for service binding, passed to bindService()
+   */
   private ServiceConnection hrSensorServiceConnection = new ServiceConnection() {
 
     @Override
@@ -575,6 +578,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       return;
     }
   }
+
   final Runnable onConnectionTimeout = new Runnable() {
     @Override
     public void run() {

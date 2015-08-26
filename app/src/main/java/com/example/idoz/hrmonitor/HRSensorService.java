@@ -39,7 +39,7 @@ import java.util.UUID;
 /**
  * Service for managing connection and data communication with a GATT server hosted on a
  * given Bluetooth LE device.
- * <p/>
+ * <p>
  * Copied as-is from BluetoothLeGatt sample
  */
 public class HRSensorService extends Service {
@@ -91,7 +91,7 @@ public class HRSensorService extends Service {
   }
 
   public boolean connectToDevice() {
-    if( !initBluetooth() ) {
+    if (!initBluetooth()) {
       return false;
     }
 
