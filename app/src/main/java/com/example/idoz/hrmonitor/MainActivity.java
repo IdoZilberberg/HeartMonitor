@@ -12,6 +12,7 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -27,6 +28,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
+
+import com.example.idoz.hrmonitor.AudioTrackPlayer.HrAudioEnum;
 
 import org.joda.time.DateTime;
 
@@ -63,12 +66,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private int lastHeartRate = 0;
   private Handler handler;
   private boolean isLogging = false;
+  private boolean canPlayAlerts = true;
 
   // view elements
   private TextView heartRateText;
   private TextView usernameText;
   private ImageView hrSensorConnectedIndicatorImageView;
-  private ToggleButton loggingToggleButton;
   private ProgressBar heartRateMemoryDataProgressBar;
 
   // prefs
@@ -76,12 +79,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private String username = "NA";
   private int maxHeartRate = MAX_HR_NOT_SET, minHeartRate = MIN_HR_NOT_SET;
   private int maxHeartRateRecordsInMemory;
+  private boolean alertOutsideHrRange;
   private final static String heartRateLoggerFilenamePrefix = "heartRate_";
 
   // connections
   private HRSensorService hrSensorService;
   private BroadcastReceiver bluetoothStateReceiver;
   private HeartRateDao dao;
+  private AudioTrackPlayer audioTrackPlayer;
 
   private List<HeartRateRecord> records = new LinkedList<>();
 
@@ -96,7 +101,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     createDao();
     registerReceiver(bluetoothStateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
     handler = new Handler();
-
+    setVolumeControlStream(AudioManager.STREAM_MUSIC);
+    audioTrackPlayer = new AudioTrackPlayer();
   }
 
   private void tryRegisterBluetoothStateReceiver() {
@@ -210,6 +216,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     if (getString(R.string.setting_min_hr).equals(key)) {
       minHeartRate = Integer.parseInt(sharedPreferences.getString(key, MIN_HR_NOT_SET_STR));
     }
+    if (getString(R.string.setting_alert_outside_hr_range).equals(key)) {
+      alertOutsideHrRange = sharedPreferences.getBoolean(key, false);
+    }
   }
 
 
@@ -227,17 +236,23 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     heartRateMemoryDataProgressBar.setProgress(0);
     heartRateMemoryDataProgressBar.setMax(maxHeartRateRecordsInMemory);
     heartRateMemoryDataProgressBar.setScaleY(3f);
-    loggingToggleButton = (ToggleButton) findViewById(R.id.loggingToggleButton);
+    ToggleButton loggingToggleButton = (ToggleButton) findViewById(R.id.loggingToggleButton);
     loggingToggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
       @Override
       public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         if (isChecked) {
           startLogging();
+          play(HrAudioEnum.HI);
         } else {
           stopLogging();
+          play(HrAudioEnum.LO);
         }
       }
     });
+  }
+
+  private void play(final HrAudioEnum audioToPlay) {
+    audioTrackPlayer.play(getBaseContext(), audioToPlay);
   }
 
   private void startLogging() {
@@ -255,7 +270,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private int flushHeartRateMemoryToStorage() {
     final int count = dao.saveHeartRateRecords(this, records);
     if (count == -1) {
-      Toast.makeText(this, "Error saving log file", Toast.LENGTH_LONG);
+      Toast.makeText(this, "Error saving log file", Toast.LENGTH_LONG).show();
     }
     records.clear();
     heartRateMemoryDataProgressBar.setProgress(0);
@@ -283,9 +298,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
           switch (bluetoothState) {
             case BluetoothAdapter.STATE_ON:
               bluetoothEnabled = true;
+              Log.i(TAG, ">->-> Bluetooth is ON <-<-<");
               break;
             case BluetoothAdapter.STATE_OFF:
               bluetoothEnabled = false;
+              Log.i(TAG, ">->-> Bluetooth is OFF <-<-<");
               break;
             default:
               break;
@@ -416,6 +433,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
     try {
       final int newHeartRate = Integer.parseInt(data);
+      checkAgainstHrRange(newHeartRate);
       refreshHeartRateText(newHeartRate);
       lastHeartRate = newHeartRate;
       addRecordIfLogging(newHeartRate);
@@ -423,6 +441,18 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       setHeartRateError();
     }
 
+  }
+
+  private void checkAgainstHrRange(final int newHeartRate) {
+    if (!canPlayAlerts) {
+      return;
+    }
+    if (newHeartRate > maxHeartRate && alertOutsideHrRange) {
+      play(HrAudioEnum.HI);
+    }
+    if (newHeartRate < minHeartRate && alertOutsideHrRange) {
+      play(HrAudioEnum.LO);
+    }
   }
 
   private void addRecordIfLogging(int newHeartRate) {
@@ -483,10 +513,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
   };
   // Handles various events fired by the Service.
-  // ACTION_GATT_CONNECTED: connected to a HR sensor
-  // ACTION_GATT_DISCONNECTED: disconnected from HR sensor
-  // ACTION_DATA_AVAILABLE: received data from the device.  This can be a result of read
-  //                        or notification operations.
+// ACTION_GATT_CONNECTED: connected to a HR sensor
+// ACTION_GATT_DISCONNECTED: disconnected from HR sensor
+// ACTION_DATA_AVAILABLE: received data from the device.  This can be a result of read
+//                        or notification operations.
   private final BroadcastReceiver hrSensorBroadcastReceiver = new BroadcastReceiver() {
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -574,8 +604,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     // Checks if Bluetooth is supported on the device.
     if (bluetoothAdapter == null) {
       Toast.makeText(this, R.string.error_bluetooth_not_supported, Toast.LENGTH_SHORT).show();
+
       finish();
-      return;
     }
   }
 

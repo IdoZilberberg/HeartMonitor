@@ -19,6 +19,11 @@
             android:title="Auto-connect sensor"
             android:summary="Connect to the first heart rate sensor found"
             android:defaultValue="false"/>
+        <CheckBoxPreference
+            android:key="@string/setting_alert_outside_hr_range"
+            android:title="Heart rate audio alerts"
+            android:summary="Ping when outside range"
+            android:defaultValue="false"/>
 
     </PreferenceCategory>
 </PreferenceScreen>
