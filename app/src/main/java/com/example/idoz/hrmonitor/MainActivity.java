@@ -53,6 +53,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private static final long delayOnReconnectAfterDisconnectMillis = 5000L;
   private static final int maxHrCutoff = 200; // omit outlier values
   private static final int minHrCutoff = 30; // omit outlier values
+  private static final int minIntervalBetweenAlertsInSeconds = 5;
 
   private static final IntentFilter hrSensorServiceIntentFilter = createHrSensorIntentFilters();
 
@@ -94,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
-    exitIfNoBluetoothCapability();
+    warnIfNoBluetoothCapability();
     initPrefs();
     populateUiVariables();
     createBluetoothStateReceiver();
@@ -147,6 +148,35 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     tryUnbindHRSensorService();
   }
 
+  private void initPrefs() {
+    SP = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+    username = SP.getString(getString(R.string.setting_username), getString(R.string.default_username));
+    maxHeartRate = Integer.parseInt(SP.getString(getString(R.string.setting_max_hr), MAX_HR_NOT_SET_STR));
+    minHeartRate = Integer.parseInt(SP.getString(getString(R.string.setting_min_hr), MIN_HR_NOT_SET_STR));
+    maxHeartRateRecordsInMemory = 10; // To put in prefs
+    alertOutsideHrRange = SP.getBoolean(getString(R.string.setting_alert_outside_hr_range), false);
+    SP.registerOnSharedPreferenceChangeListener(this);
+  }
+
+  @Override
+  public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+
+    if (getString(R.string.setting_username).equals(key)) {
+      usernameText.setText(sharedPreferences.getString(key, "NA"));
+      return;
+    }
+    if (getString(R.string.setting_max_hr).equals(key)) {
+      maxHeartRate = Integer.parseInt(sharedPreferences.getString(key, MAX_HR_NOT_SET_STR));
+      return;
+    }
+    if (getString(R.string.setting_min_hr).equals(key)) {
+      minHeartRate = Integer.parseInt(sharedPreferences.getString(key, MIN_HR_NOT_SET_STR));
+    }
+    if (getString(R.string.setting_alert_outside_hr_range).equals(key)) {
+      alertOutsideHrRange = sharedPreferences.getBoolean(key, false);
+    }
+  }
+
   private void tryUnregisterBluetoothStateReceiver() {
     if (isBluetoothStateReceiverRegistered) {
       unregisterReceiver(bluetoothStateReceiver);
@@ -181,6 +211,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     return true;
   }
 
+
   @Override
   public boolean onOptionsItemSelected(MenuItem item) {
     final int id = item.getItemId();
@@ -201,26 +232,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         return super.onOptionsItemSelected(item);
     }
   }
-
-  @Override
-  public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-
-    if (getString(R.string.setting_username).equals(key)) {
-      usernameText.setText(sharedPreferences.getString(key, "NA"));
-      return;
-    }
-    if (getString(R.string.setting_max_hr).equals(key)) {
-      maxHeartRate = Integer.parseInt(sharedPreferences.getString(key, MAX_HR_NOT_SET_STR));
-      return;
-    }
-    if (getString(R.string.setting_min_hr).equals(key)) {
-      minHeartRate = Integer.parseInt(sharedPreferences.getString(key, MIN_HR_NOT_SET_STR));
-    }
-    if (getString(R.string.setting_alert_outside_hr_range).equals(key)) {
-      alertOutsideHrRange = sharedPreferences.getBoolean(key, false);
-    }
-  }
-
 
   private void createDao() {
     dao = new HeartRateCsvDao(heartRateLoggerFilenamePrefix, maxHrCutoff, minHrCutoff);
@@ -267,6 +278,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     Log.i(TAG, "Logging stopped, saved " + count + " records. -1 denotes error.");
   }
 
+
   private int flushHeartRateMemoryToStorage() {
     final int count = dao.saveHeartRateRecords(this, records);
     if (count == -1) {
@@ -277,9 +289,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     return count;
   }
 
-
   private void refreshUi() {
     refreshHRSensorConnectionIndicator();
+    if (!bluetoothEnabled) {
+      setHeartRateUnknown();
+    }
     invalidateOptionsMenu();
   }
 
@@ -308,10 +322,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
               break;
           }
         }
+        refreshUi();
       }
     };
 
   }
+
 
   private void tryUnregisterHRSensorBroadcastReceiver() {
     Log.i(TAG, "tryUnregisterHRSensorBroadcastReceiver()");
@@ -321,13 +337,17 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
   }
 
-
   private void checkBluetoothEnabled() {
 
     Log.i(TAG, "checkBluetoothEnabled()");
     final BluetoothManager bluetoothManager =
             (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
     BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
+    if (bluetoothAdapter == null) {
+      bluetoothEnabled = false;
+      refreshUi();
+      return;
+    }
 
     if (!bluetoothAdapter.isEnabled()) {
       bluetoothEnabled = false;
@@ -359,15 +379,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       hrSensorConnectedIndicatorImageView.setVisibility(View.INVISIBLE);
     }
 
-  }
-
-  private void initPrefs() {
-    SP = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-    username = SP.getString(getString(R.string.setting_username), getString(R.string.default_username));
-    maxHeartRate = Integer.parseInt(SP.getString(getString(R.string.setting_max_hr), MAX_HR_NOT_SET_STR));
-    minHeartRate = Integer.parseInt(SP.getString(getString(R.string.setting_min_hr), MIN_HR_NOT_SET_STR));
-    maxHeartRateRecordsInMemory = 10; // To put in prefs
-    SP.registerOnSharedPreferenceChangeListener(this);
   }
 
   private void tryRegisterHRSensorBroadcastReceiver() {
@@ -449,10 +460,22 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
     if (newHeartRate > maxHeartRate && alertOutsideHrRange) {
       play(HrAudioEnum.HI);
+      muteAlertsForXSeconds(minIntervalBetweenAlertsInSeconds);
     }
     if (newHeartRate < minHeartRate && alertOutsideHrRange) {
       play(HrAudioEnum.LO);
+      muteAlertsForXSeconds(minIntervalBetweenAlertsInSeconds);
     }
+  }
+
+  private void muteAlertsForXSeconds(int minIntervalBetweenAlertsInSeconds) {
+    canPlayAlerts = false;
+    handler.postDelayed(new Runnable() {
+      @Override
+      public void run() {
+        canPlayAlerts = true;
+      }
+    }, minIntervalBetweenAlertsInSeconds*1000);
   }
 
   private void addRecordIfLogging(int newHeartRate) {
@@ -500,10 +523,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     if (newHR < minHeartRate) {
       return Color.BLACK;
     }
-    if (newHR > oldHR) {
-      return Color.MAGENTA;
-    }
-    return Color.BLUE;
+//    if (newHR > oldHR) {
+//      return Color.MAGENTA;
+//    }
+    return Color.rgb(0,128,0);
   }
 
   private Runnable reconnectAfterDisconnect = new Runnable() {
@@ -586,12 +609,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
   };
 
-  private void exitIfNoBluetoothCapability() {
-    // Use this check to determine whether BLE is supported on the device.  Then you can
-    // selectively disable BLE-related features.
+  private void warnIfNoBluetoothCapability() {
+    // Use this check to determine whether BLE is supported on the device.
     if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
-      Toast.makeText(this, R.string.ble_not_supported, Toast.LENGTH_SHORT).show();
-      finish();
+      Toast.makeText(this, R.string.warn_ble_not_supported, Toast.LENGTH_LONG).show();
+//      finish();
       return;
     }
 
@@ -603,9 +625,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     // Checks if Bluetooth is supported on the device.
     if (bluetoothAdapter == null) {
-      Toast.makeText(this, R.string.error_bluetooth_not_supported, Toast.LENGTH_SHORT).show();
+      Toast.makeText(this, R.string.warn_bluetooth_not_supported, Toast.LENGTH_LONG).show();
 
-      finish();
+//      finish();
     }
   }
 

@@ -60,15 +60,16 @@ public class AudioTrackPlayer {
   }
 
   public void play(Context context, HrAudioEnum hrAudioEnum) {
-    byte[] sound = sounds.get(hrAudioEnum.getIndex());
+    final byte[] sound = sounds.get(hrAudioEnum.getIndex());
     Log.d(TAG, "Audio: asked to play audio track " + hrAudioEnum + ". arraylen=" + sound.length);
+    final AudioManager am = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
     final AudioTrack audioTrack = createAudioTrack(sound);
     audioTrack.setNotificationMarkerPosition(sound.length/2);
     audioTrack.setPlaybackPositionUpdateListener(new AudioTrack.OnPlaybackPositionUpdateListener() {
       @Override
       public void onMarkerReached(AudioTrack track) {
-//        Log.d(TAG, "+++Stop playing and releasing");
         track.release();
+        am.abandonAudioFocus(afChangeListener);
       }
 
       @Override
@@ -76,22 +77,16 @@ public class AudioTrackPlayer {
 
       }
     });
-    AudioManager am = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
     int result = am.requestAudioFocus(afChangeListener,
             AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
     if( result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED ) {
-//      Log.d(TAG, "+++Start playing");
       audioTrack.play();
-
-
-//      audioTrack.release();
     }
   }
 
   AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
     public void onAudioFocusChange(int focusChange) {
       if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
-
         // Lower the volume
       } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
         // Raise it back to normal
