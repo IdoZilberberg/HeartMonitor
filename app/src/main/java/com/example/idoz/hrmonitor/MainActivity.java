@@ -53,7 +53,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private static final long delayOnReconnectAfterDisconnectMillis = 5000L;
   private static final int maxHrCutoff = 200; // omit outlier values
   private static final int minHrCutoff = 30; // omit outlier values
-  private static final int minIntervalBetweenAlertsInSeconds = 5;
+  private static final int minIntervalBetweenAlertsInSeconds = 20;
 
   private static final IntentFilter hrSensorServiceIntentFilter = createHrSensorIntentFilters();
 
@@ -102,7 +102,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     createDao();
     registerReceiver(bluetoothStateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
     handler = new Handler();
-    setVolumeControlStream(AudioManager.STREAM_MUSIC);
+    setVolumeControlStream(AudioManager.STREAM_NOTIFICATION);
     audioTrackPlayer = new AudioTrackPlayer();
   }
 
@@ -130,6 +130,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
   }
 
+  @Override
+  protected void onResume() {
+    super.onResume();
+    setVolumeControlStream(AudioManager.STREAM_NOTIFICATION);
+  }
 
   @Override
   protected void onStop() {

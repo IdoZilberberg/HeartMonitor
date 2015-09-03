@@ -78,7 +78,7 @@ public class AudioTrackPlayer {
       }
     });
     int result = am.requestAudioFocus(afChangeListener,
-            AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
+            AudioManager.STREAM_NOTIFICATION, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
     if( result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED ) {
       audioTrack.play();
     }
@@ -96,7 +96,7 @@ public class AudioTrackPlayer {
 
   private AudioTrack createAudioTrack(byte[] snd) {
     AudioTrack audioTrack;
-    audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
+    audioTrack = new AudioTrack(AudioManager.STREAM_NOTIFICATION,
             SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO,
             AudioFormat.ENCODING_PCM_16BIT, snd.length,
             AudioTrack.MODE_STATIC);
