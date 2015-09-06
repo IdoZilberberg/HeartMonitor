@@ -97,7 +97,7 @@
         android:id="@+id/heartRateMemoryDataProgressBar"
         android:layout_gravity="center_horizontal"
         android:layout_weight="0.05"
-        android:max="50"
+        android:max="100"
         android:mirrorForRtl="false"/>
 
 </LinearLayout>

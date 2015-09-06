@@ -123,7 +123,7 @@ public class AudioTrackPlayer {
     int idx = 0;
     int i = 0;
 
-    int ramp = numSamples / 20;                                    // Amplitude ramp as a percent of sample count
+    int ramp = numSamples / 5;                                    // Amplitude ramp as a percent of sample count
 
 
     for (i = 0; i < ramp; ++i) {                                     // Ramp amplitude up (to avoid clicks)

@@ -9,7 +9,7 @@ import java.util.List;
  */
 public interface HeartRateDao {
 
-  int saveHeartRateRecords(final Context context, final List<HeartRateRecord> heartRateRecords);
+  int saveHeartRateRecords(final List<HeartRateRecord> heartRateRecords);
 
 
 }

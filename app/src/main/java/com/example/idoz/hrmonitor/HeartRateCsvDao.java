@@ -26,17 +26,19 @@ public class HeartRateCsvDao implements HeartRateDao {
   private final static DateTimeFormatter fmtDateHHMM = DateTimeFormat.forPattern("yyyy/MM/dd-HH:mm");
   private final static DateTimeFormatter fmtFull = DateTimeFormat.forPattern("yyyy/MM/dd-HH:mm:ss");
   private final HeartRateRecordToFileMapper mapper = new HeartRateRecordToFileMapper();
+  private final Context context;
   private final String filenamePrefix;
   private final int maxHrCutoff, minHrCutoff;
 
-  public HeartRateCsvDao(final String filenamePrefix, final int maxHrCutoff, final int minHrCutoff) {
+  public HeartRateCsvDao(final Context context, final String filenamePrefix, final int maxHrCutoff, final int minHrCutoff) {
+    this.context = context;
     this.filenamePrefix = filenamePrefix;
     this.maxHrCutoff = maxHrCutoff;
     this.minHrCutoff = minHrCutoff;
   }
 
   @Override
-  public int saveHeartRateRecords(final Context context, List<HeartRateRecord> heartRateRecords) {
+  public int saveHeartRateRecords(List<HeartRateRecord> heartRateRecords) {
     final String filename = filenamePrefix + fmtDateCompact.print(new DateTime()) + ".csv";
     if (!externalStorageAvailable()) {
       Log.w(TAG, "External storage unavailable! cannot write data");
@@ -51,7 +53,7 @@ public class HeartRateCsvDao implements HeartRateDao {
     try {
       //final File outputFile = new File(Environment.getExternalStorageDirectory(), filenamePrefix);
       final File dir = context.getExternalFilesDir("hrlogs");
-      if (!dir.exists() && !dir.mkdirs()) {
+      if (dir==null || (!dir.exists() && !dir.mkdirs())) {
         Log.w(TAG, "Cannot create directory " + dir.getAbsolutePath());
         return -1;
       }
