@@ -33,11 +33,8 @@ public class AudioTrackPlayer {
   }
 
   private static final int SAMPLE_RATE = 8000;
-
-
-
-  private static byte[] HI = generate(0.1, 1000, SAMPLE_RATE);
-  private static byte[] LO = generate(0.1, 500, SAMPLE_RATE);
+  private static byte[] HI = generate(0.1, 1000, 2000, SAMPLE_RATE);
+  private static byte[] LO = generate(0.1, 500, 1000, SAMPLE_RATE);
   private static List<byte[]> sounds;
 
   private boolean isInit = false;
@@ -59,33 +56,28 @@ public class AudioTrackPlayer {
     isInit = true;
   }
 
-  public void play(Context context, HrAudioEnum hrAudioEnum) {
+  public void play(final Context context, final HrAudioEnum hrAudioEnum) {
     final byte[] sound = sounds.get(hrAudioEnum.getIndex());
     Log.d(TAG, "Audio: asked to play audio track " + hrAudioEnum + ". arraylen=" + sound.length);
-    final AudioManager am = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
+    final AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
     final AudioTrack audioTrack = createAudioTrack(sound);
-    audioTrack.setNotificationMarkerPosition(sound.length/2);
+    audioTrack.setNotificationMarkerPosition(sound.length / 2);
     audioTrack.setPlaybackPositionUpdateListener(new AudioTrack.OnPlaybackPositionUpdateListener() {
       @Override
-      public void onMarkerReached(AudioTrack track) {
+      public void onMarkerReached(final AudioTrack track) {
         track.release();
-        am.abandonAudioFocus(afChangeListener);
       }
 
       @Override
-      public void onPeriodicNotification(AudioTrack track) {
+      public void onPeriodicNotification(final AudioTrack track) {
 
       }
     });
-    int result = am.requestAudioFocus(afChangeListener,
-            AudioManager.STREAM_NOTIFICATION, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
-    if( result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED ) {
-      audioTrack.play();
-    }
+    audioTrack.play();
   }
 
   AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
-    public void onAudioFocusChange(int focusChange) {
+    public void onAudioFocusChange(final int focusChange) {
       if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
         // Lower the volume
       } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
@@ -94,9 +86,9 @@ public class AudioTrackPlayer {
     }
   };
 
-  private AudioTrack createAudioTrack(byte[] snd) {
+  private AudioTrack createAudioTrack(final byte[] snd) {
     AudioTrack audioTrack;
-    audioTrack = new AudioTrack(AudioManager.STREAM_NOTIFICATION,
+    audioTrack = new AudioTrack(AudioManager.STREAM_SYSTEM,
             SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO,
             AudioFormat.ENCODING_PCM_16BIT, snd.length,
             AudioTrack.MODE_STATIC);
@@ -104,7 +96,7 @@ public class AudioTrackPlayer {
     return audioTrack;
   }
 
-  private static byte[] generate(final double durationsSec, final double frequencyHz, final int sampleRate) {
+  private static byte[] generate(final double durationsSec, final double frequencyHz1, final double frequencyHz2, final int sampleRate) {
 
     double dnumSamples = durationsSec * sampleRate;
     dnumSamples = Math.ceil(dnumSamples);
@@ -112,8 +104,11 @@ public class AudioTrackPlayer {
     double sample[] = new double[numSamples];
     byte generatedSnd[] = new byte[2 * numSamples];
 
-    for (int i = 0; i < numSamples; ++i) {      // Fill the sample array
-      sample[i] = Math.sin(frequencyHz * 2 * Math.PI * i / (sampleRate));
+    for (int i = 0; i < numSamples/2; ++i) {      // Fill the sample array
+      sample[i] = Math.sin(frequencyHz1 * 2 * Math.PI * i / (sampleRate));
+    }
+    for (int i = numSamples/2; i < numSamples; ++i) {      // Fill the sample array
+      sample[i] = Math.sin(frequencyHz2 * 2 * Math.PI * i / (sampleRate));
     }
 
     // convert to 16 bit pcm sound array
@@ -156,7 +151,7 @@ public class AudioTrackPlayer {
     }
 
     Log.i(TAG, "Audio: generated audio buffer with size " + generatedSnd.length + ", dur=" + durationsSec + "s, freq=" +
-            "Hz, sampleRate=" + sampleRate);
+            frequencyHz1+"->"+frequencyHz2+"Hz, sampleRate=" + sampleRate);
 
     return generatedSnd;
   }

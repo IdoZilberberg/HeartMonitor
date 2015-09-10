@@ -97,7 +97,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     createHeartRateLogger();
     registerReceiver(bluetoothStateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
     handler = new Handler();
-    setVolumeControlStream(AudioManager.STREAM_NOTIFICATION);
+    setVolumeControlStream(AudioManager.STREAM_SYSTEM);
     audioTrackPlayer = new AudioTrackPlayer();
   }
 
@@ -267,7 +267,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   }
 
   private void play(final HrAudioEnum audioToPlay) {
-    audioTrackPlayer.play(getBaseContext(), audioToPlay);
+    handler.post(new Runnable() {
+      @Override
+      public void run() {
+        audioTrackPlayer.play(getBaseContext(), audioToPlay);
+      }
+    });
+
   }
 
   private void startLogging() {
