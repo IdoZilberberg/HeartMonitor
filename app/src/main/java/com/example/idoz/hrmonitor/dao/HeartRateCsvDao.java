@@ -1,9 +1,12 @@
-package com.example.idoz.hrmonitor;
+package com.example.idoz.hrmonitor.dao;
 
 import android.content.Context;
 import android.os.Environment;
 import android.util.Log;
 import android.widget.Toast;
+
+import com.example.idoz.hrmonitor.HeartRateDao;
+import com.example.idoz.hrmonitor.HeartRateRecord;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -22,10 +25,7 @@ public class HeartRateCsvDao implements HeartRateDao {
 
   private final static String TAG = HeartRateCsvDao.class.getSimpleName();
   private final static DateTimeFormatter fmtDateCompact = DateTimeFormat.forPattern("yyyyMMdd");
-  private final static DateTimeFormatter fmtDate = DateTimeFormat.forPattern("yyyy/MM/dd");
-  private final static DateTimeFormatter fmtDateHHMM = DateTimeFormat.forPattern("yyyy/MM/dd-HH:mm");
-  private final static DateTimeFormatter fmtFull = DateTimeFormat.forPattern("yyyy/MM/dd-HH:mm:ss");
-  private final HeartRateRecordToFileMapper mapper = new HeartRateRecordToFileMapper();
+  private final HeartRateRecordCsvRowMapper mapper = new HeartRateRecordCsvRowMapper();
   private final Context context;
   private final String filenamePrefix;
   private final int maxHrCutoff, minHrCutoff;
@@ -69,7 +69,7 @@ public class HeartRateCsvDao implements HeartRateDao {
         if (outsideCutoff(record.getHeartRate())) {
           continue;
         }
-        writer.append(mapper.mapRow(record));
+        writer.append(mapper.mapRow(record)).append("\n");
         ++recordsWritten;
       }
       writer.flush();
@@ -95,17 +95,4 @@ public class HeartRateCsvDao implements HeartRateDao {
     return Environment.MEDIA_MOUNTED.equals(state);
   }
 
-  private class HeartRateRecordToFileMapper {
-    public String mapRow(final HeartRateRecord heartRateRecord) {
-
-      StringBuffer sb = new StringBuffer();
-      sb
-              .append(heartRateRecord.getUser()).append(",")
-              .append(fmtDate.print(heartRateRecord.getDate())).append(",")
-              .append(fmtDateHHMM.print(heartRateRecord.getDate())).append(",")
-              .append(fmtFull.print(heartRateRecord.getDate())).append(",")
-              .append(heartRateRecord.getHeartRate()).append("\n");
-      return sb.toString();
-    }
-  }
 }

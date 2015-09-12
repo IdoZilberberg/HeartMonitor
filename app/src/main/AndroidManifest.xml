@@ -23,6 +23,7 @@ PackageManager.hasSystemFeature(FEATURE_BLUETOOTH_LE) -->
         android:theme="@style/AppTheme">
         <activity
             android:name=".MainActivity"
+            android:launchMode="singleTop"
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

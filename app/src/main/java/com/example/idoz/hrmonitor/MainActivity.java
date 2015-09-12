@@ -1,6 +1,9 @@
 package com.example.idoz.hrmonitor;
 
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.content.BroadcastReceiver;
@@ -17,6 +20,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -30,6 +34,7 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.example.idoz.hrmonitor.AudioTrackPlayer.HrAudioEnum;
+import com.example.idoz.hrmonitor.dao.HeartRateCsvDao;
 import com.example.idoz.hrmonitor.handlers.HeartRateLogger;
 
 import static com.example.idoz.hrmonitor.ConnectionState.*;
@@ -50,7 +55,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private static final int maxHrCutoff = 200; // omit outlier values
   private static final int minHrCutoff = 30; // omit outlier values
   private static final int minIntervalBetweenAlertsInSeconds = 20;
-
+  private static final int NOTIFICATION_MAIN = 1;
   private static final IntentFilter hrSensorServiceIntentFilter = createHrSensorIntentFilters();
 
   // state (mutable)
@@ -62,7 +67,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private boolean isHRrSensorBroadcastReceiverRegistered = false;
   private int lastHeartRate = 0;
   private Handler handler;
-  private boolean canPlayAlerts = true;
+  private boolean alertsTemporarilyMuted = false;
+  private boolean isBackToHrRange = true;
 
   // view elements
   private TextView heartRateText;
@@ -74,7 +80,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private SharedPreferences SP;
   private String username = "NA";
   private int maxHeartRate = MAX_HR_NOT_SET, minHeartRate = MIN_HR_NOT_SET;
-  private boolean alertOutsideHrRange;
+  private boolean playAlertIfOutsideHrRange;
   private final static String heartRateLoggerFilenamePrefix = "heartRate_";
 
   // connections
@@ -82,7 +88,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private BroadcastReceiver bluetoothStateReceiver;
   private HeartRateLogger heartRateLogger;
   private AudioTrackPlayer audioTrackPlayer;
-
+  private int thresholdAboveMaxHeartRate = 5;
 
 
   @Override
@@ -92,22 +98,16 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     warnIfNoBluetoothCapability();
     initPrefs();
     populateUiVariables();
+    addToNotificationBar();
     createBluetoothStateReceiver();
     createDao();
     createHeartRateLogger();
-    registerReceiver(bluetoothStateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
+//    registerReceiver(bluetoothStateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
     handler = new Handler();
     setVolumeControlStream(AudioManager.STREAM_SYSTEM);
     audioTrackPlayer = new AudioTrackPlayer();
   }
 
-  private void tryRegisterBluetoothStateReceiver() {
-    createBluetoothStateReceiver();
-    if (!isBluetoothStateReceiverRegistered) {
-      registerReceiver(bluetoothStateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
-      isBluetoothStateReceiverRegistered = true;
-    }
-  }
 
   @Override
   protected void onStart() {
@@ -135,17 +135,64 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   protected void onStop() {
     super.onStop();
     Log.i(TAG, "*** onStop()");
+    tryUnregisterBluetoothStateReceiver();
   }
 
   @Override
   protected void onDestroy() {
     Log.i(TAG, "*** onDestroy()");
+
     super.onDestroy();
+    //shutdown();
+  }
+
+  private void shutdown() {
     stopLogging();
     userClickedDisconnectHrSensor();
     SP.unregisterOnSharedPreferenceChangeListener(this);
-    tryUnregisterBluetoothStateReceiver();
+
     tryUnbindHRSensorService();
+    removeFromNotificationBar();
+    finish();
+  }
+
+  private void addToNotificationBar() {
+    final NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+    final NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this)
+            .setSmallIcon(R.drawable.heart_512)
+            .setContentTitle("Heart Rate Monitor")
+            .setContentText(">> status tbd <<")
+            .setCategory(Notification.CATEGORY_PROGRESS)
+            .setOngoing(true); // prevent removal
+
+    final Intent resultIntent = new Intent(this, MainActivity.class);
+    final PendingIntent resultPendingIntent = PendingIntent.getActivity(this, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+    notificationBuilder.setContentIntent(resultPendingIntent);
+
+    notificationManager.notify(NOTIFICATION_MAIN, notificationBuilder.build());
+  }
+
+  private void tryRegisterBluetoothStateReceiver() {
+    createBluetoothStateReceiver();
+    if (!isBluetoothStateReceiverRegistered) {
+      registerReceiver(bluetoothStateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
+      isBluetoothStateReceiverRegistered = true;
+      Log.i(TAG, "Registered Bluetooth state receiver");
+    }
+  }
+
+  private void tryUnregisterBluetoothStateReceiver() {
+    if (isBluetoothStateReceiverRegistered) {
+      unregisterReceiver(bluetoothStateReceiver);
+      isBluetoothStateReceiverRegistered = false;
+      Log.i(TAG, "Unregistered Bluetooth state receiver");
+    }
+  }
+
+  private void removeFromNotificationBar() {
+    final NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+    notificationManager.cancel(NOTIFICATION_MAIN);
   }
 
   private void initPrefs() {
@@ -154,7 +201,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     maxHeartRate = Integer.parseInt(SP.getString(getString(R.string.setting_max_hr), MAX_HR_NOT_SET_STR));
     minHeartRate = Integer.parseInt(SP.getString(getString(R.string.setting_min_hr), MIN_HR_NOT_SET_STR));
 
-    alertOutsideHrRange = SP.getBoolean(getString(R.string.setting_alert_outside_hr_range), false);
+    playAlertIfOutsideHrRange = SP.getBoolean(getString(R.string.setting_alert_outside_hr_range), false);
     SP.registerOnSharedPreferenceChangeListener(this);
   }
 
@@ -173,16 +220,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       minHeartRate = Integer.parseInt(sharedPreferences.getString(key, MIN_HR_NOT_SET_STR));
     }
     if (getString(R.string.setting_alert_outside_hr_range).equals(key)) {
-      alertOutsideHrRange = sharedPreferences.getBoolean(key, false);
+      playAlertIfOutsideHrRange = sharedPreferences.getBoolean(key, false);
     }
   }
 
-  private void tryUnregisterBluetoothStateReceiver() {
-    if (isBluetoothStateReceiverRegistered) {
-      unregisterReceiver(bluetoothStateReceiver);
-      isBluetoothStateReceiverRegistered = false;
-    }
-  }
 
   @Override
   public boolean onCreateOptionsMenu(Menu menu) {
@@ -228,6 +269,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         Intent settingsIntent = new Intent(this, SettingsActivity.class);
         startActivity(settingsIntent);
         return true;
+      case R.id.menu_exit:
+        shutdown();
+        return true;
+
       default:
         return super.onOptionsItemSelected(item);
     }
@@ -237,7 +282,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     return new HeartRateCsvDao(this, heartRateLoggerFilenamePrefix, maxHrCutoff, minHrCutoff);
   }
 
-  private void createHeartRateLogger()  {
+  private void createHeartRateLogger() {
     heartRateLogger = new HeartRateLogger(createDao());
   }
 
@@ -257,10 +302,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         if (isChecked) {
           startLogging();
-          play(HrAudioEnum.HI);
+          play(HrAudioEnum.HIHI);
         } else {
           stopLogging();
-          play(HrAudioEnum.LO);
+          play(HrAudioEnum.NORMAL);
         }
       }
     });
@@ -270,6 +315,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     handler.post(new Runnable() {
       @Override
       public void run() {
+        Log.d(TAG, "Play sound in thread: " + Thread.currentThread().getName());
         audioTrackPlayer.play(getBaseContext(), audioToPlay);
       }
     });
@@ -277,18 +323,17 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   }
 
   private void startLogging() {
-    if(heartRateLogger!=null) {
+    if (heartRateLogger != null) {
       heartRateLogger.startLogging();
     }
   }
 
   private void stopLogging() {
-    if(heartRateLogger!=null) {
+    if (heartRateLogger != null) {
       heartRateLogger.stopLogging();
     }
     heartRateMemoryDataProgressBar.setProgress(0);
   }
-
 
 
   private void refreshUi() {
@@ -450,6 +495,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       setHeartRateError();
       return;
     }
+    setIsBackToNormalHrRange(lastHeartRate, newHeartRate);
     playHeartRateAlert(newHeartRate);
     int progress = heartRateLogger.logHeartRate(username, newHeartRate);
     refreshHeartRateUi(newHeartRate);
@@ -458,26 +504,51 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     lastHeartRate = newHeartRate;
   }
 
+  private void setIsBackToNormalHrRange(final int oldHeartRate, final int newHeartRate) {
+    if( (oldHeartRate > maxHeartRate || oldHeartRate < minHeartRate) &&
+            (newHeartRate<=maxHeartRate && newHeartRate>=minHeartRate ) ){
+      isBackToHrRange = true;
+    } else {
+      isBackToHrRange = false;
+    }
+  }
+
   private void playHeartRateAlert(final int newHeartRate) {
-    if (!canPlayAlerts) {
+    if (!playAlertIfOutsideHrRange) {
       return;
     }
-    if (newHeartRate > maxHeartRate && alertOutsideHrRange) {
+    if(isBackToHrRange) {
+      play(HrAudioEnum.NORMAL);
+      isBackToHrRange = false;
+      return;
+    }
+    if (alertsTemporarilyMuted) {
+      return;
+    }
+    if (newHeartRate > maxHeartRate + thresholdAboveMaxHeartRate) {
+      play(HrAudioEnum.HIHI);
+      muteAlertsForXSeconds(minIntervalBetweenAlertsInSeconds);
+      return;
+    }
+    if (newHeartRate > maxHeartRate) {
       play(HrAudioEnum.HI);
       muteAlertsForXSeconds(minIntervalBetweenAlertsInSeconds);
+      return;
     }
-    if (newHeartRate < minHeartRate && alertOutsideHrRange) {
+    if (newHeartRate < minHeartRate) {
       play(HrAudioEnum.LO);
       muteAlertsForXSeconds(minIntervalBetweenAlertsInSeconds);
+      return;
     }
   }
 
   private void muteAlertsForXSeconds(int minIntervalBetweenAlertsInSeconds) {
-    canPlayAlerts = false;
+    alertsTemporarilyMuted = true;
     handler.postDelayed(new Runnable() {
       @Override
       public void run() {
-        canPlayAlerts = true;
+        Log.d(TAG, "muteAlertsForXSeconds().run() in thread: " + Thread.currentThread().getName());
+        alertsTemporarilyMuted = false;
       }
     }, minIntervalBetweenAlertsInSeconds * 1000);
   }
@@ -524,6 +595,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private Runnable reconnectAfterDisconnect = new Runnable() {
     @Override
     public void run() {
+      Log.d(TAG, "reconnectAfterDisconnect() in thread: " + Thread.currentThread().getName());
       userClickedConnectHrSensor();
     }
   };

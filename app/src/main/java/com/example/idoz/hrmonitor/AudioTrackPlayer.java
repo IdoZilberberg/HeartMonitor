@@ -19,7 +19,7 @@ public class AudioTrackPlayer {
   private final static String TAG = AudioTrackPlayer.class.getSimpleName();
 
   public static enum HrAudioEnum {
-    HI(0), LO(1);
+    HI(0), LO(1), HIHI(2), NORMAL(3);
 
     private int index;
 
@@ -33,8 +33,10 @@ public class AudioTrackPlayer {
   }
 
   private static final int SAMPLE_RATE = 8000;
-  private static byte[] HI = generate(0.1, 1000, 2000, SAMPLE_RATE);
-  private static byte[] LO = generate(0.1, 500, 1000, SAMPLE_RATE);
+  private static byte[] HI = generate(0.1, 2000, 2000, SAMPLE_RATE);
+  private static byte[] LO = generate(0.1, 1000, 1000, SAMPLE_RATE);
+  private static byte[] HIHI = generate(0.2, 2000, 3000, SAMPLE_RATE);
+  private static byte[] NORMAL = generate(0.1, 2000, 1000, SAMPLE_RATE);
   private static List<byte[]> sounds;
 
   private boolean isInit = false;
@@ -52,6 +54,8 @@ public class AudioTrackPlayer {
     sounds = new ArrayList<>(HrAudioEnum.values().length);
     sounds.add(0, HI);
     sounds.add(1, LO);
+    sounds.add(2, HIHI);
+    sounds.add(3, NORMAL);
 
     isInit = true;
   }

@@ -54,16 +54,16 @@ public class HRSensorService extends Service {
 
   BluetoothGattCharacteristic heartRateCharacteristic = null;
   public static final String STATUS_HR_NOT_SUPPORTED =
-          "com.example.bluetooth.le.STATUS_HR_NOT_SUPPORTED";
+          "com.idoz.hrmonitor.ble.STATUS_HR_NOT_SUPPORTED";
   public final static String ACTION_GATT_CONNECTED =
-          "com.example.bluetooth.le.ACTION_GATT_CONNECTED";
+          "com.idoz.hrmonitor.ble.ACTION_GATT_CONNECTED";
   public final static String ACTION_GATT_DISCONNECTED =
-          "com.example.bluetooth.le.ACTION_GATT_DISCONNECTED";
+          "com.idoz.hrmonitor.ble.ACTION_GATT_DISCONNECTED";
   public final static String ACTION_DATA_AVAILABLE =
-          "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
+          "com.idoz.hrmonitor.ble.ACTION_DATA_AVAILABLE";
 
   public final static String EXTRA_DATA =
-          "com.example.bluetooth.le.EXTRA_DATA";
+          "com.idoz.hrmonitor.ble.EXTRA_DATA";
 
   public final static UUID UUID_HEART_RATE_MEASUREMENT =
           UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT);
@@ -133,7 +133,11 @@ public class HRSensorService extends Service {
       switch (newState) {
         case BluetoothProfile.STATE_CONNECTED:
           Log.i(TAG, "Connected to HR Sensor, starting service discovery.");
+          handler.removeCallbacks(onServiceDiscoveryTimeout);
           handler.postDelayed(onServiceDiscoveryTimeout, 5000);
+          if(deviceCommunicator==null)  {
+            connectToDevice();
+          }
           deviceCommunicator.discoverServices();
           break;
         case BluetoothProfile.STATE_DISCONNECTED:

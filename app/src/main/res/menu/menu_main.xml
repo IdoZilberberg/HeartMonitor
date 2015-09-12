@@ -28,4 +28,8 @@
         android:id="@+id/menu_settings"
         android:title="@string/menu_settings"
         support:showAsAction="never"/>
+    <item
+        android:id="@+id/menu_exit"
+        android:title="@string/menu_exit"
+        support:showAsAction="never"/>
 </menu>
