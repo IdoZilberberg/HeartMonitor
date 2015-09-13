@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.media.AudioManager;
@@ -75,6 +76,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private TextView usernameText;
   private ImageView hrSensorConnectedIndicatorImageView;
   private ProgressBar heartRateMemoryDataProgressBar;
+  private ToggleButton loggingToggleButton;
+  private ToggleButton orientationToggleButton;
 
   // prefs
   private SharedPreferences SP;
@@ -104,7 +107,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     createHeartRateLogger();
 //    registerReceiver(bluetoothStateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
     handler = new Handler();
-    setVolumeControlStream(AudioManager.STREAM_SYSTEM);
+    setVolumeControlStream(AudioManager.STREAM_NOTIFICATION);
     audioTrackPlayer = new AudioTrackPlayer();
   }
 
@@ -296,19 +299,34 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     heartRateMemoryDataProgressBar.setProgress(0);
     heartRateMemoryDataProgressBar.setMax(100);
     heartRateMemoryDataProgressBar.setScaleY(3f); // For UI legibility
-    ToggleButton loggingToggleButton = (ToggleButton) findViewById(R.id.loggingToggleButton);
+    loggingToggleButton = (ToggleButton) findViewById(R.id.loggingToggleButton);
     loggingToggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
       @Override
       public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         if (isChecked) {
           startLogging();
-          play(HrAudioEnum.HIHI);
+          play(HrAudioEnum.HI);
         } else {
           stopLogging();
           play(HrAudioEnum.NORMAL);
         }
       }
     });
+    orientationToggleButton = (ToggleButton) findViewById(R.id.orientationToggleButton);
+    orientationToggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+      @Override
+      public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+          switchToPortraitOrientation(isChecked);
+      }
+    });
+  }
+
+  private void switchToPortraitOrientation(boolean reversePortrait) {
+    if(reversePortrait) {
+      setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT);
+    } else  {
+      setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+    }
   }
 
   private void play(final HrAudioEnum audioToPlay) {
@@ -316,7 +334,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       @Override
       public void run() {
         Log.d(TAG, "Play sound in thread: " + Thread.currentThread().getName());
-        audioTrackPlayer.play(getBaseContext(), audioToPlay);
+        audioTrackPlayer.play(audioToPlay);
       }
     });
 

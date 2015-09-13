@@ -32,11 +32,21 @@ public class AudioTrackPlayer {
     }
   }
 
+  private static final double B4 = 493.88;
+
+  // See http://abletonop.com/downloads/articles/abletonop-notes-and-freqs-table.pdf
   private static final int SAMPLE_RATE = 8000;
-  private static byte[] HI = generate(0.1, 2000, 2000, SAMPLE_RATE);
-  private static byte[] LO = generate(0.1, 1000, 1000, SAMPLE_RATE);
-  private static byte[] HIHI = generate(0.2, 2000, 3000, SAMPLE_RATE);
-  private static byte[] NORMAL = generate(0.1, 2000, 1000, SAMPLE_RATE);
+  private static final double C5 = 523.25;
+  private static final double D5 = 587.33;
+  private static final double C6 = 1046.50;
+  private static final double D6 = 1174.66;
+  private static final double C7 = 2093.00;
+  private static final double E6 = 1318.51;
+  private static final double E7 = 2637.02;
+  private static byte[] HI = generate(0.075, D6, E6, D6, E6, D6);
+  private static byte[] LO = generate(0.1, D5, B4, C5, B4, D5);
+  private static byte[] HIHI = generate(0.1, E6, E7, E6, E7, E6, E7, E6, E7, E6);
+  private static byte[] NORMAL = generate(0.075, C5, B4, C5);
   private static List<byte[]> sounds;
 
   private boolean isInit = false;
@@ -52,6 +62,7 @@ public class AudioTrackPlayer {
     }
 
     sounds = new ArrayList<>(HrAudioEnum.values().length);
+
     sounds.add(0, HI);
     sounds.add(1, LO);
     sounds.add(2, HIHI);
@@ -60,10 +71,9 @@ public class AudioTrackPlayer {
     isInit = true;
   }
 
-  public void play(final Context context, final HrAudioEnum hrAudioEnum) {
+  public void play(final HrAudioEnum hrAudioEnum) {
     final byte[] sound = sounds.get(hrAudioEnum.getIndex());
     Log.d(TAG, "Audio: asked to play audio track " + hrAudioEnum + ". arraylen=" + sound.length);
-    final AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
     final AudioTrack audioTrack = createAudioTrack(sound);
     audioTrack.setNotificationMarkerPosition(sound.length / 2);
     audioTrack.setPlaybackPositionUpdateListener(new AudioTrack.OnPlaybackPositionUpdateListener() {
@@ -80,19 +90,9 @@ public class AudioTrackPlayer {
     audioTrack.play();
   }
 
-  AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
-    public void onAudioFocusChange(final int focusChange) {
-      if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
-        // Lower the volume
-      } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
-        // Raise it back to normal
-      }
-    }
-  };
-
   private AudioTrack createAudioTrack(final byte[] snd) {
     AudioTrack audioTrack;
-    audioTrack = new AudioTrack(AudioManager.STREAM_SYSTEM,
+    audioTrack = new AudioTrack(AudioManager.STREAM_NOTIFICATION,
             SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO,
             AudioFormat.ENCODING_PCM_16BIT, snd.length,
             AudioTrack.MODE_STATIC);
@@ -100,20 +100,26 @@ public class AudioTrackPlayer {
     return audioTrack;
   }
 
-  private static byte[] generate(final double durationsSec, final double frequencyHz1, final double frequencyHz2, final int sampleRate) {
+  private static byte[] generate(final double durationsInSecondsPerSection, final double ... frequencies) {
 
-    double dnumSamples = durationsSec * sampleRate;
-    dnumSamples = Math.ceil(dnumSamples);
-    int numSamples = (int) dnumSamples;
-    double sample[] = new double[numSamples];
-    byte generatedSnd[] = new byte[2 * numSamples];
+    final double dnumSamplesPerSection = Math.ceil(durationsInSecondsPerSection * SAMPLE_RATE);
+    final int numSamplesPerSection = (int) dnumSamplesPerSection;
+    final int totalSamples = numSamplesPerSection * frequencies.length;
+    final double sample[] = new double[totalSamples];
+    final byte generatedSnd[] = new byte[2 * totalSamples];
 
-    for (int i = 0; i < numSamples/2; ++i) {      // Fill the sample array
-      sample[i] = Math.sin(frequencyHz1 * 2 * Math.PI * i / (sampleRate));
+
+    int index=0;
+    for (double frequency : frequencies) {
+      Log.i(TAG, "Writing freq " + frequency + " for " + numSamplesPerSection + " samples.");
+      for (int i = 0; i < numSamplesPerSection; i++) {      // Fill the sample array
+        sample[index++] = Math.sin(frequency * 2 * Math.PI * i / (SAMPLE_RATE));
+      }
     }
-    for (int i = numSamples/2; i < numSamples; ++i) {      // Fill the sample array
-      sample[i] = Math.sin(frequencyHz2 * 2 * Math.PI * i / (sampleRate));
-    }
+
+//    for (int i = numSamples/2; i < numSamples; ++i) {      // Fill the sample array
+//      sample[i] = Math.sin(frequencyHz2 * 2 * Math.PI * i / (SAMPLE_RATE));
+//    }
 
     // convert to 16 bit pcm sound array
     // assumes the sample buffer is normalized.
@@ -122,10 +128,11 @@ public class AudioTrackPlayer {
     int idx = 0;
     int i = 0;
 
-    int ramp = numSamples / 5;                                    // Amplitude ramp as a percent of sample count
 
+//    int ramp = totalSamples / 20; // Amplitude ramp as a percent of sample count
+    final int ramp = SAMPLE_RATE / 50; // 1/50s for ramp up
 
-    for (i = 0; i < ramp; ++i) {                                     // Ramp amplitude up (to avoid clicks)
+    for (i = 0; i < ramp; ++i) { // Ramp amplitude up (to avoid clicks)
       double dVal = sample[i];
       // Ramp up to maximum
       final short val = (short) ((dVal * 32767 * i / ramp));
@@ -135,7 +142,7 @@ public class AudioTrackPlayer {
     }
 
 
-    for (i = i; i < numSamples - ramp; ++i) {                        // Max amplitude for most of the samples
+    for (i = i; i < totalSamples - ramp; ++i) { // Max amplitude for most of the samples
       double dVal = sample[i];
       // scale to maximum amplitude
       final short val = (short) ((dVal * 32767));
@@ -145,17 +152,16 @@ public class AudioTrackPlayer {
 
     }
 
-    for (i = i; i < numSamples; ++i) {                               // Ramp amplitude down
+    for (i = i; i < totalSamples; ++i) { // Ramp amplitude down
       double dVal = sample[i];
       // Ramp down to zero
-      final short val = (short) ((dVal * 32767 * (numSamples - i) / ramp));
+      final short val = (short) ((dVal * 32767 * (totalSamples - i) / ramp));
       // in 16 bit wav PCM, first byte is the low order byte
       generatedSnd[idx++] = (byte) (val & 0x00ff);
       generatedSnd[idx++] = (byte) ((val & 0xff00) >>> 8);
     }
 
-    Log.i(TAG, "Audio: generated audio buffer with size " + generatedSnd.length + ", dur=" + durationsSec + "s, freq=" +
-            frequencyHz1+"->"+frequencyHz2+"Hz, sampleRate=" + sampleRate);
+    Log.i(TAG, "Audio: generated audio buffer with size " + generatedSnd.length);
 
     return generatedSnd;
   }
