@@ -16,6 +16,8 @@ import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -35,8 +37,7 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.example.idoz.hrmonitor.AudioTrackPlayer.HrAudioEnum;
-import com.example.idoz.hrmonitor.dao.HeartRateCsvDao;
-import com.example.idoz.hrmonitor.handlers.HeartRateLogger;
+import com.example.idoz.hrmonitor.handlers.HeartRateFullLogger;
 
 import static com.example.idoz.hrmonitor.ConnectionState.*;
 
@@ -53,9 +54,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private static final int REQUEST_ENABLE_BT = 1;
   private static final long connectionTimeoutDelayMillis = 4000L;
   private static final long delayOnReconnectAfterDisconnectMillis = 5000L;
-  private static final int maxHrCutoff = 200; // omit outlier values
-  private static final int minHrCutoff = 30; // omit outlier values
-  private static final int minIntervalBetweenAlertsInSeconds = 20;
+  private static final int minIntervalBetweenAlertsInSeconds = 10;
   private static final int NOTIFICATION_MAIN = 1;
   private static final IntentFilter hrSensorServiceIntentFilter = createHrSensorIntentFilters();
 
@@ -70,6 +69,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private Handler handler;
   private boolean alertsTemporarilyMuted = false;
   private boolean isBackToHrRange = true;
+  private boolean hrMockingActive = false;
 
   // view elements
   private TextView heartRateText;
@@ -78,20 +78,33 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private ProgressBar heartRateMemoryDataProgressBar;
   private ToggleButton loggingToggleButton;
   private ToggleButton orientationToggleButton;
+  private ToggleButton mockToggleButton;
 
   // prefs
   private SharedPreferences SP;
   private String username = "NA";
   private int maxHeartRate = MAX_HR_NOT_SET, minHeartRate = MIN_HR_NOT_SET;
   private boolean playAlertIfOutsideHrRange;
-  private final static String heartRateLoggerFilenamePrefix = "heartRate_";
+
 
   // connections
   private HRSensorService hrSensorService;
   private BroadcastReceiver bluetoothStateReceiver;
-  private HeartRateLogger heartRateLogger;
+  private HeartRateFullLogger heartRateLogger;
   private AudioTrackPlayer audioTrackPlayer;
   private int thresholdAboveMaxHeartRate = 5;
+
+  final Runnable onCreateMockHrData = new Runnable() {
+    @Override
+    public void run() {
+      onReceiveHeartRateData((int) (Math.random() * (maxHeartRate-minHeartRate+40) + minHeartRate-15));
+      if (hrMockingActive) {
+        handler.postDelayed(onCreateMockHrData, 1000);
+      } else {
+        handler.removeCallbacks(onCreateMockHrData);
+      }
+    }
+  };
 
 
   @Override
@@ -103,8 +116,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     populateUiVariables();
     addToNotificationBar();
     createBluetoothStateReceiver();
-    createDao();
-    createHeartRateLogger();
+    createHeartRateFullLogger();
 //    registerReceiver(bluetoothStateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
     handler = new Handler();
     setVolumeControlStream(AudioManager.STREAM_NOTIFICATION);
@@ -234,11 +246,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     getMenuInflater().inflate(R.menu.menu_main, menu);
 
     if (!bluetoothEnabled) {
-      menu.findItem(R.id.menu_connect).setVisible(true);
+      menu.findItem(R.id.menu_connect).setVisible(false);
       menu.findItem(R.id.menu_connect).setEnabled(false);
       menu.findItem(R.id.menu_disconnect).setVisible(false);
+      mockToggleButton.setVisibility(View.VISIBLE);
       return true;
     }
+    mockToggleButton.setVisibility(View.GONE);
+    toggleHrMocking(false);
 
     switch (hrSensorConnectionState) {
       case CONNECTING:
@@ -253,6 +268,17 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     }
     return true;
+  }
+
+  private void toggleHrMocking(final boolean isEnabled) {
+    hrMockingActive = isEnabled;
+    if (hrMockingActive) {
+      handler.post(onCreateMockHrData);
+    } else {
+      handler.removeCallbacks(onCreateMockHrData);
+      setHeartRateUnknown();
+    }
+
   }
 
 
@@ -281,12 +307,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
   }
 
-  private HeartRateDao createDao() {
-    return new HeartRateCsvDao(this, heartRateLoggerFilenamePrefix, maxHrCutoff, minHrCutoff);
-  }
 
-  private void createHeartRateLogger() {
-    heartRateLogger = new HeartRateLogger(createDao());
+  private void createHeartRateFullLogger() {
+    heartRateLogger = new HeartRateFullLogger(this, username);
   }
 
   private void populateUiVariables() {
@@ -316,15 +339,22 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     orientationToggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
       @Override
       public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-          switchToPortraitOrientation(isChecked);
+        switchToPortraitOrientation(isChecked);
+      }
+    });
+    mockToggleButton = (ToggleButton) findViewById(R.id.mockToggleButton);
+    mockToggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+      @Override
+      public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        toggleHrMocking(isChecked);
       }
     });
   }
 
   private void switchToPortraitOrientation(boolean reversePortrait) {
-    if(reversePortrait) {
+    if (reversePortrait) {
       setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT);
-    } else  {
+    } else {
       setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
   }
@@ -342,13 +372,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
   private void startLogging() {
     if (heartRateLogger != null) {
-      heartRateLogger.startLogging();
+      heartRateLogger.enable();
     }
   }
 
   private void stopLogging() {
     if (heartRateLogger != null) {
-      heartRateLogger.stopLogging();
+      heartRateLogger.disable();
     }
     heartRateMemoryDataProgressBar.setProgress(0);
   }
@@ -513,9 +543,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       setHeartRateError();
       return;
     }
+    onReceiveHeartRateData(newHeartRate);
+  }
+
+  private void onReceiveHeartRateData(final int newHeartRate) {
     setIsBackToNormalHrRange(lastHeartRate, newHeartRate);
     playHeartRateAlert(newHeartRate);
-    int progress = heartRateLogger.logHeartRate(username, newHeartRate);
+    int progress = heartRateLogger.onHeartRateChange(lastHeartRate, newHeartRate);
     refreshHeartRateUi(newHeartRate);
     heartRateMemoryDataProgressBar.setProgress(progress);
 
@@ -523,9 +557,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   }
 
   private void setIsBackToNormalHrRange(final int oldHeartRate, final int newHeartRate) {
-    if( (oldHeartRate > maxHeartRate || oldHeartRate < minHeartRate) &&
-            (newHeartRate<=maxHeartRate && newHeartRate>=minHeartRate ) ){
+    if ((oldHeartRate > maxHeartRate || oldHeartRate < minHeartRate) &&
+            (newHeartRate <= maxHeartRate && newHeartRate >= minHeartRate)) {
       isBackToHrRange = true;
+      alertsTemporarilyMuted = false;
     } else {
       isBackToHrRange = false;
     }
@@ -535,7 +570,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     if (!playAlertIfOutsideHrRange) {
       return;
     }
-    if(isBackToHrRange) {
+
+    if (isBackToHrRange) {
       play(HrAudioEnum.NORMAL);
       isBackToHrRange = false;
       return;
@@ -574,6 +610,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
   private void refreshHeartRateUi(int newHeartRate) {
     heartRateText.setTextColor(calculateHeartRateTextColor(newHeartRate, lastHeartRate));
+    if (hrMockingActive) {
+      heartRateText.setTypeface(null, Typeface.ITALIC);
+    } else {
+      heartRateText.setTypeface(null, Typeface.NORMAL);
+    }
     heartRateText.setText(Integer.toString(newHeartRate));
   }
 

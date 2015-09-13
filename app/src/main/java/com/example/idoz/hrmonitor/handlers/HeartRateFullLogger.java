@@ -1,10 +1,11 @@
 package com.example.idoz.hrmonitor.handlers;
 
+import android.content.Context;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.example.idoz.hrmonitor.HeartRateDao;
 import com.example.idoz.hrmonitor.HeartRateRecord;
+import com.example.idoz.hrmonitor.dao.HeartRateCsvDao;
 
 import org.joda.time.DateTime;
 
@@ -14,24 +15,36 @@ import java.util.List;
 /**
  * Created by izilberberg on 9/6/15.
  */
-public class HeartRateLogger {
+public class HeartRateFullLogger implements HeartRateObserver {
 
-  private final static String TAG = HeartRateLogger.class.getSimpleName();
+  private final static String TAG = HeartRateFullLogger.class.getSimpleName();
   private final int maxHeartRateRecordsInMemory = 10;
   private final HeartRateDao heartRateDao;
   private final List<HeartRateRecord> heartRateRecords;
+  private String username;
   private boolean isLogging;
 
-  public HeartRateLogger(final HeartRateDao heartRateDao) {
+  private final static String heartRateLoggerFilenamePrefix = "heartRate_";
+  private static final int maxHrCutoff = 200; // omit outlier values
+  private static final int minHrCutoff = 30; // omit outlier values
+
+
+  public HeartRateFullLogger(final Context context, final String username) {
+    this.username = username;
     heartRateRecords = new LinkedList<>();
-    this.heartRateDao = heartRateDao;
+    this.heartRateDao = createDao(context);
   }
 
-  /**
-   *
-   * @return  pct [0-100] of how full the memory is
-   */
-  public int logHeartRate(final String username, final int newHeartRate) {
+  private HeartRateDao createDao(final Context context) {
+    return new HeartRateCsvDao(context, heartRateLoggerFilenamePrefix, maxHrCutoff, minHrCutoff);
+  }
+
+  public void setUsername(String username) {
+    this.username = username;
+  }
+
+  @Override
+  public int onHeartRateChange(final int oldHeartRate, final int newHeartRate) {
     if (!isLogging) {
       return 0;
     }
@@ -46,13 +59,15 @@ public class HeartRateLogger {
   }
 
 
-  public void startLogging() {
+  @Override
+  public void enable() {
     isLogging = true;
     Log.i(TAG, "Logging started");
 
   }
 
-  public void stopLogging() {
+  @Override
+  public void disable() {
     isLogging = false;
 
     final int count = flushHeartRateMemoryToStorage();
