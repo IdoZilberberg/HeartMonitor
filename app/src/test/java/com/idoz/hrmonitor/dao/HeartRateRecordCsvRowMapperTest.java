@@ -1,11 +1,7 @@
-package com.example.idoz.hrmonitor.dao;
+package com.idoz.hrmonitor.dao;
 
-import android.app.Application;
-
-import com.example.idoz.hrmonitor.HeartRateDao;
-import com.example.idoz.hrmonitor.HeartRateRecord;
-
-import net.danlew.android.joda.JodaTimeAndroid;
+import com.idoz.hrmonitor.HeartRateDao;
+import com.idoz.hrmonitor.HeartRateRecord;
 
 import org.joda.time.DateTime;
 import org.junit.BeforeClass;
