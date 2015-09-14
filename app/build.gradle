@@ -9,7 +9,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.example.idoz.helloworld"
+        applicationId "com.idoz.helloworld"
         minSdkVersion 19
         targetSdkVersion 22
         versionCode 1
