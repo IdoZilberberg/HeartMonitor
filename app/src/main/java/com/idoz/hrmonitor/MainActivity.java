@@ -1,4 +1,4 @@
-package com.example.idoz.hrmonitor;
+package com.idoz.hrmonitor;
 
 import android.app.Activity;
 import android.app.Notification;
@@ -16,7 +16,6 @@ import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.media.AudioManager;
 import android.os.Bundle;
@@ -36,10 +35,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
-import com.example.idoz.hrmonitor.AudioTrackPlayer.HrAudioEnum;
-import com.example.idoz.hrmonitor.handlers.HeartRateFullLogger;
+import com.idoz.hrmonitor.AudioTrackPlayer.HrAudioEnum;
+import com.idoz.hrmonitor.handlers.HeartRateFullLogger;
 
-import static com.example.idoz.hrmonitor.ConnectionState.*;
+import static com.idoz.hrmonitor.ConnectionState.*;
 
 
 public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {

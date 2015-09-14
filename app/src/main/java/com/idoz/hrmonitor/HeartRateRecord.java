@@ -1,8 +1,6 @@
-package com.example.idoz.hrmonitor;
+package com.idoz.hrmonitor;
 
 import org.joda.time.DateTime;
-
-import java.util.Date;
 
 /**
  * Created by izilberberg on 8/25/15.

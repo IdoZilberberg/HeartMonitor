@@ -1,4 +1,4 @@
-package com.example.idoz.hrmonitor;
+package com.idoz.hrmonitor;
 
 import android.os.Bundle;
 import android.preference.PreferenceActivity;

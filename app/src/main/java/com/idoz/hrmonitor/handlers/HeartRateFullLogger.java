@@ -1,11 +1,11 @@
-package com.example.idoz.hrmonitor.handlers;
+package com.idoz.hrmonitor.handlers;
 
 import android.content.Context;
 import android.util.Log;
 
-import com.example.idoz.hrmonitor.HeartRateDao;
-import com.example.idoz.hrmonitor.HeartRateRecord;
-import com.example.idoz.hrmonitor.dao.HeartRateCsvDao;
+import com.idoz.hrmonitor.HeartRateDao;
+import com.idoz.hrmonitor.HeartRateRecord;
+import com.idoz.hrmonitor.dao.HeartRateCsvDao;
 
 import org.joda.time.DateTime;
 

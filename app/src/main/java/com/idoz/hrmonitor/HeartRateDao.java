@@ -1,6 +1,4 @@
-package com.example.idoz.hrmonitor;
-
-import android.content.Context;
+package com.idoz.hrmonitor;
 
 import java.util.List;
 

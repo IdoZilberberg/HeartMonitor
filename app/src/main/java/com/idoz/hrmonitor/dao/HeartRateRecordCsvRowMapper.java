@@ -1,6 +1,6 @@
-package com.example.idoz.hrmonitor.dao;
+package com.idoz.hrmonitor.dao;
 
-import com.example.idoz.hrmonitor.HeartRateRecord;
+import com.idoz.hrmonitor.HeartRateRecord;
 
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;

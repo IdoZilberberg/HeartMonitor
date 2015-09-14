@@ -1,6 +1,5 @@
-package com.example.idoz.hrmonitor;
+package com.idoz.hrmonitor;
 
-import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;

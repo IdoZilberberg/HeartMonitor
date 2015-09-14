@@ -1,12 +1,12 @@
-package com.example.idoz.hrmonitor.dao;
+package com.idoz.hrmonitor.dao;
 
 import android.content.Context;
 import android.os.Environment;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.example.idoz.hrmonitor.HeartRateDao;
-import com.example.idoz.hrmonitor.HeartRateRecord;
+import com.idoz.hrmonitor.HeartRateDao;
+import com.idoz.hrmonitor.HeartRateRecord;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;

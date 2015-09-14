@@ -1,11 +1,9 @@
-package com.example.idoz.hrmonitor;
+package com.idoz.hrmonitor;
 
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-
-import com.example.idoz.hrmonitor.R;
 
 public class UsersActivity extends ActionBarActivity {
 

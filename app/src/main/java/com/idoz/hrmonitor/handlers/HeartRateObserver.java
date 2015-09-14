@@ -1,4 +1,4 @@
-package com.example.idoz.hrmonitor.handlers;
+package com.idoz.hrmonitor.handlers;
 
 /**
  * Created by izilberberg on 9/6/15.
