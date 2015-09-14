@@ -117,17 +117,10 @@ public class AudioTrackPlayer {
       }
     }
 
-//    for (int i = numSamples/2; i < numSamples; ++i) {      // Fill the sample array
-//      sample[i] = Math.sin(frequencyHz2 * 2 * Math.PI * i / (SAMPLE_RATE));
-//    }
-
-    // convert to 16 bit pcm sound array
-    // assumes the sample buffer is normalized.
     // convert to 16 bit pcm sound array
     // assumes the sample buffer is normalised.
     int idx = 0;
     int i = 0;
-
 
 //    int ramp = totalSamples / 20; // Amplitude ramp as a percent of sample count
     final int ramp = SAMPLE_RATE / 50; // 1/50s for ramp up

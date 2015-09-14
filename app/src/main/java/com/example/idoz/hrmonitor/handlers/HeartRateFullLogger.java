@@ -53,9 +53,9 @@ public class HeartRateFullLogger implements HeartRateObserver {
       flushHeartRateMemoryToStorage();
     }
     heartRateRecords.add(new HeartRateRecord(username, new DateTime(), newHeartRate));
-    final int percentMemoryfull = (int)((heartRateRecords.size() / (double)maxHeartRateRecordsInMemory) * 100.0);
-    Log.i(TAG, "Memory is " + percentMemoryfull + "% full.");
-    return percentMemoryfull;
+    final int percentMemoryFull = (int)((heartRateRecords.size() / (double)maxHeartRateRecordsInMemory) * 100.0);
+    Log.i(TAG, "Memory is " + percentMemoryFull + "% full.");
+    return percentMemoryFull;
   }
 
 
