@@ -15,27 +15,25 @@ public abstract class AbstractHeartRateLogger implements HeartRateLogger {
   private final static String TAG = AbstractHeartRateLogger.class.getSimpleName();
 
   final HeartRateDao heartRateDao;
-  private final String username;
+  private String username = "NA";
   protected boolean logging = false;
 
-  public AbstractHeartRateLogger(final Context context, final String username) {
-    this.username = username;
+  public AbstractHeartRateLogger(final Context context) {
     heartRateDao = createDao(context);
   }
 
   @Override
-  public void enable() {
+  public void startLogging(final String username) {
     logging = true;
-    Log.i(TAG, "Logging started");
   }
 
   @Override
-  public void disable() {
+  public void stopLogging() {
     logging = false;
   }
 
   @Override
-  public int onHeartRateChange(int oldHeartRate, int newHeartRate) {
+  public int onHeartRateChange(final int newHeartRate) {
     return 0;
   }
 
@@ -47,11 +45,14 @@ public abstract class AbstractHeartRateLogger implements HeartRateLogger {
     return username;
   }
 
+  @Override
+  public void setUsername(String username) {
+    this.username = username;
+  }
+
   public boolean isLogging() {
     return logging;
   }
-
-  abstract int flush();
 
   abstract HeartRateRowMapper getMapper();
 

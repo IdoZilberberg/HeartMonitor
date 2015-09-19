@@ -37,8 +37,6 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.idoz.hrmonitor.AudioTrackPlayer.HrAudioEnum;
-import com.idoz.hrmonitor.logger.HeartRateFullLogger;
-import com.idoz.hrmonitor.logger.HeartRateLogger;
 
 import static com.idoz.hrmonitor.ConnectionState.*;
 
@@ -91,9 +89,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
   // connections
   private HRSensorService hrSensorService;
+  private HrLoggerService hrLoggerService;
   private HrSensorServiceConnection hrSensorServiceConnection;
+  private HrLoggerServiceConnection hrLoggerServiceConnection;
   private BroadcastReceiver bluetoothOnOffStateReceiver;
-  private HeartRateLogger heartRateLogger;
   private AudioTrackPlayer audioTrackPlayer;
   private int thresholdAboveMaxHeartRate = 5;
 
@@ -119,14 +118,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     populateUiVariables();
     addToNotificationBar();
     createBluetoothOnOffStateReceiver();
-    Intent i = new Intent(this, HRSensorService.class);
-    startService(i);
+    startService(new Intent(this, HRSensorService.class));
+    startService(new Intent(this, HrLoggerService.class));
 
-    createHeartRateLogger();
 //    registerReceiver(bluetoothOnOffStateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
     handler = new Handler();
     audioTrackPlayer = new AudioTrackPlayer();
     hrSensorServiceConnection = new HrSensorServiceConnection();
+    hrLoggerServiceConnection = new HrLoggerServiceConnection();
   }
 
 
@@ -152,13 +151,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     Log.i(TAG, "*** onResume()");
     setVolumeControlStream(AudioManager.STREAM_MUSIC);
     tryBindHRSensorService();
+    bindService(new Intent(this, HrLoggerService.class), hrLoggerServiceConnection, BIND_AUTO_CREATE);
   }
 
   @Override
   protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
     Log.i(TAG, "*** onNewIntent()");
-    if( intent.getBooleanExtra("EXIT", false) ) {
+    if (intent.getBooleanExtra("EXIT", false)) {
       Log.i(TAG, "Requested to finish from notification");
       shutdown();
     }
@@ -180,14 +180,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
   private void shutdown() {
     Log.i(TAG, "*** shutdown()");
-    stopLogging();
+    hrLoggerService.stopLogging();
     removeFromNotificationBar();
     userClickedDisconnectHrSensor();
     SP.unregisterOnSharedPreferenceChangeListener(this);
     tryUnregisterBluetoothOnOffStateReceiver();
     tryUnbindHRSensorService();
-    Intent i = new Intent(this, HRSensorService.class);
-    stopService(i);
+    stopService(new Intent(this, HrLoggerService.class));
+    stopService(new Intent(this, HRSensorService.class));
     finish();
   }
 
@@ -204,7 +204,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             .setCategory(Notification.CATEGORY_PROGRESS)
             .setOngoing(true) // prevent removal
             .addAction(R.drawable.heart_notification_128, "Show", resultPendingIntent);
-            //.addAction(R.drawable.abc_btn_radio_material, "Exit", resultPendingIntentExit);
+    //.addAction(R.drawable.abc_btn_radio_material, "Exit", resultPendingIntentExit);
 
     notificationBuilder.setContentIntent(resultPendingIntent);
     Log.i(TAG, "=== add notification ===");
@@ -332,10 +332,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   }
 
 
-  private void createHeartRateLogger() {
-    heartRateLogger = new HeartRateFullLogger(this, username);
-  }
-
   private void populateUiVariables() {
     setContentView(R.layout.activity_main);
     toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -356,10 +352,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       @Override
       public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         if (isChecked) {
-          startLogging();
+          hrLoggerService.startLogging(username);
           play(HrAudioEnum.HI);
         } else {
-          stopLogging();
+          hrLoggerService.stopLogging();
           play(HrAudioEnum.NORMAL);
         }
       }
@@ -378,7 +374,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         toggleHrMocking(isChecked);
         if (isChecked) {
           play(HrAudioEnum.HIHI);
-        } else  {
+        } else {
           play(HrAudioEnum.LO);
         }
       }
@@ -403,20 +399,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     });
 
   }
-
-  private void startLogging() {
-    if (heartRateLogger != null) {
-      heartRateLogger.enable();
-    }
-  }
-
-  private void stopLogging() {
-    if (heartRateLogger != null) {
-      heartRateLogger.disable();
-    }
-    heartRateMemoryDataProgressBar.setProgress(0);
-  }
-
 
   private void refreshUi() {
     refreshHRSensorConnectionIndicator();
@@ -544,6 +526,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
   }
 
+  private void tryUnbindHRSensorService() {
+    if (serviceBound) {
+      tryUnregisterHRSensorBroadcastReceiver();
+      Log.i(TAG, "Unbinding from HR Sensor service...");
+      unbindService(hrSensorServiceConnection);
+      hrSensorService = null;
+    }
+  }
+
   private void userClickedDisconnectHrSensor() {
     Log.i(TAG, "userClickedDisconnectHrSensor()");
     if (DISCONNECTED == hrSensorConnectionState) {
@@ -555,15 +546,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 //      setHeartRatePending();
 //      refreshUi();
       hrSensorService.disconnectFromDevice();
-    }
-  }
-
-  private void tryUnbindHRSensorService() {
-    if (serviceBound) {
-      tryUnregisterHRSensorBroadcastReceiver();
-      Log.i(TAG, "Unbinding from HR Sensor service...");
-      unbindService(hrSensorServiceConnection);
-      hrSensorService = null;
     }
   }
 
@@ -584,9 +566,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private void onReceiveHeartRateData(final int newHeartRate) {
     setIsBackToNormalHrRange(lastHeartRate, newHeartRate);
     playHeartRateAlert(newHeartRate);
-    int progress = heartRateLogger.onHeartRateChange(lastHeartRate, newHeartRate);
-    refreshHeartRateUi(newHeartRate);
-    heartRateMemoryDataProgressBar.setProgress(progress);
+    //int progress = heartRateLogger.onHeartRateChange(lastHeartRate, newHeartRate);
+    setHeartRateNewValue(newHeartRate);
+//    heartRateMemoryDataProgressBar.setProgress(progress);
+    heartRateMemoryDataProgressBar.setProgress(0);
 
     lastHeartRate = newHeartRate;
   }
@@ -642,7 +625,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   }
 
 
-  private void refreshHeartRateUi(int newHeartRate) {
+  private void setHeartRateNewValue(int newHeartRate) {
     heartRateText.setTextColor(calculateHeartRateTextColor(newHeartRate));
     if (hrMockingActive) {
       heartRateText.setTypeface(null, Typeface.ITALIC);
@@ -775,7 +758,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
   };
 
-  private class HrSensorServiceConnection implements ServiceConnection  {
+  private class HrSensorServiceConnection implements ServiceConnection {
     @Override
     public void onServiceConnected(ComponentName className,
                                    IBinder service) {
@@ -791,7 +774,19 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       setHeartRateUnknown();
       serviceBound = false;
     }
+  }
 
+  private class HrLoggerServiceConnection implements ServiceConnection {
+    @Override
+    public void onServiceConnected(ComponentName name, IBinder service) {
+      HrLoggerService.LocalBinder binder = (HrLoggerService.LocalBinder) service;
+      hrLoggerService = binder.getService();
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName name) {
+
+    }
   }
 
 }

@@ -25,13 +25,14 @@ public class HeartRateAggregatorLogger extends AbstractHeartRateLogger {
 
   private final List<Integer> heartRateHistory;
 
-  public HeartRateAggregatorLogger(final Context context, final String username) {
-    super(context, username);
+  public HeartRateAggregatorLogger(final Context context) {
+    super(context);
     heartRateHistory = new LinkedList<>();
   }
 
   @Override
-  public int onHeartRateChange(int oldHeartRate, int newHeartRate) {
+  public int onHeartRateChange(final int newHeartRate) {
+    Log.d(TAG, ">> Got new HR: " + newHeartRate);
     if (!isLogging()) {
       return 0;
     }
@@ -52,8 +53,7 @@ public class HeartRateAggregatorLogger extends AbstractHeartRateLogger {
     return heartRateLoggerFilenamePrefix;
   }
 
-  @Override
-  public int flush() {
+  private int flush() {
     HeartRateAggregatedRecord record = aggregate(heartRateHistory);
     final int count = heartRateDao.save(record);
     heartRateHistory.clear();
@@ -70,5 +70,17 @@ public class HeartRateAggregatorLogger extends AbstractHeartRateLogger {
   @Override
   HeartRateRowMapper getMapper() {
     return new HeartRateAggregatedCsvRowMapper();
+  }
+
+  @Override
+  public void startLogging(String username) {
+    super.startLogging(username);
+    Log.i(TAG, "Logging started for " + username);
+  }
+
+  @Override
+  public void stopLogging() {
+    super.stopLogging();
+    Log.i(TAG, "Logging stopped");
   }
 }

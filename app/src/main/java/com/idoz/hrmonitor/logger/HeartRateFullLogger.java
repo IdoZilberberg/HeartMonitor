@@ -24,14 +24,15 @@ public class HeartRateFullLogger extends AbstractHeartRateLogger {
 
   private final static String heartRateLoggerFilenamePrefix = "heartRate_";
 
-  public HeartRateFullLogger(final Context context, final String username) {
-    super(context, username);
+  public HeartRateFullLogger(final Context context) {
+    super(context);
     heartRateFullRecords = new LinkedList<>();
   }
 
 
   @Override
-  public int onHeartRateChange(final int oldHeartRate, final int newHeartRate) {
+  public int onHeartRateChange(final int newHeartRate) {
+    Log.d(TAG, ">> Got new HR: " + newHeartRate);
     if (!isLogging()) {
       return 0;
     }
@@ -51,16 +52,19 @@ public class HeartRateFullLogger extends AbstractHeartRateLogger {
   }
 
   @Override
-  public void disable() {
-    super.disable();
-
-    final int count = flush();
-    Log.i(TAG, "Logging stopped, saved " + count + " heartRateFullRecords. -1 denotes error.");
-
+  public void startLogging(String username) {
+    super.startLogging(username);
+    Log.i(TAG, "Logging started for " + username);
   }
 
   @Override
-  public int flush() {
+  public void stopLogging() {
+    final int count = flush();
+    Log.i(TAG, "Logging stopped, saved " + count + " heartRateFullRecords. -1 denotes error.");
+    super.stopLogging();
+  }
+
+  private int flush() {
     final int count = heartRateDao.save(heartRateFullRecords);
     heartRateFullRecords.clear();
 

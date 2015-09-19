@@ -5,9 +5,11 @@ package com.idoz.hrmonitor.logger;
  */
 public interface HeartRateLogger {
 
-  int onHeartRateChange(final int oldHeartRate, final int newHeartRate);
+  int onHeartRateChange(final int newHeartRate);
 
-  void enable();
+  void setUsername(String username);
 
-  void disable();
+  void startLogging(String username);
+
+  void stopLogging();
 }
