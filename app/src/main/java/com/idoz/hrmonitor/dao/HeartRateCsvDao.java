@@ -6,7 +6,8 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.idoz.hrmonitor.HeartRateDao;
-import com.idoz.hrmonitor.HeartRateRecord;
+import com.idoz.hrmonitor.model.HeartRateFullRecord;
+import com.idoz.hrmonitor.model.HeartRateRecord;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -16,6 +17,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -25,20 +27,23 @@ public class HeartRateCsvDao implements HeartRateDao {
 
   private final static String TAG = HeartRateCsvDao.class.getSimpleName();
   private final static DateTimeFormatter fmtDateCompact = DateTimeFormat.forPattern("yyyyMMdd");
-  private final HeartRateRecordCsvRowMapper mapper = new HeartRateRecordCsvRowMapper();
   private final Context context;
+  final HeartRateRowMapper mapper;
   private final String filenamePrefix;
-  private final int maxHrCutoff, minHrCutoff;
 
-  public HeartRateCsvDao(final Context context, final String filenamePrefix, final int maxHrCutoff, final int minHrCutoff) {
+  public HeartRateCsvDao(final Context context, final HeartRateRowMapper mapper, final String filenamePrefix) {
     this.context = context;
+    this.mapper = mapper;
     this.filenamePrefix = filenamePrefix;
-    this.maxHrCutoff = maxHrCutoff;
-    this.minHrCutoff = minHrCutoff;
   }
 
   @Override
-  public int saveHeartRateRecords(List<HeartRateRecord> heartRateRecords) {
+  public int save(HeartRateRecord heartRateRecord) {
+    return save(Arrays.asList(new HeartRateRecord[] { heartRateRecord}));
+  }
+
+  @Override
+  public int save(List<? extends HeartRateRecord> heartRateRecords) {
     final String filename = filenamePrefix + fmtDateCompact.print(new DateTime()) + ".csv";
     if (!externalStorageAvailable()) {
       Log.w(TAG, "External storage unavailable! cannot write data");
@@ -66,9 +71,6 @@ public class HeartRateCsvDao implements HeartRateDao {
       final OutputStreamWriter writer = new OutputStreamWriter(fos);
       Log.i(TAG, "Starting to write " + heartRateRecords.size() + " records to file " + outputFile.getAbsolutePath());
       for (final HeartRateRecord record : heartRateRecords) {
-        if (outsideCutoff(record.getHeartRate())) {
-          continue;
-        }
         writer.append(mapper.mapRow(record)).append("\n");
         ++recordsWritten;
       }
@@ -77,17 +79,13 @@ public class HeartRateCsvDao implements HeartRateDao {
       fos.close();
       Log.i(TAG, "Successfully wrote " + recordsWritten + " records to file " + outputFile.getAbsolutePath());
     } catch (IOException e) {
-      Toast.makeText(context, "Failed to save to file!", Toast.LENGTH_LONG);
+      Toast.makeText(context, "Failed to save to file!", Toast.LENGTH_LONG).show();
       Log.w(TAG, "Failed to save heart rate data to file " + filename + ". Reason: " + e.getMessage());
       e.printStackTrace();
       return -1;
     }
     return recordsWritten;
 
-  }
-
-  private boolean outsideCutoff(final int heartRate) {
-    return heartRate < minHrCutoff || heartRate > maxHrCutoff;
   }
 
   private boolean externalStorageAvailable() {

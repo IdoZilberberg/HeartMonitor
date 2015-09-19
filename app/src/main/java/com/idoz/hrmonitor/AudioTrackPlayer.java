@@ -31,10 +31,11 @@ public class AudioTrackPlayer {
     }
   }
 
-  private static final double B4 = 493.88;
-
   // See http://abletonop.com/downloads/articles/abletonop-notes-and-freqs-table.pdf
   private static final int SAMPLE_RATE = 8000;
+
+  private static final double NO = 0.0;
+  private static final double B4 = 493.88;
   private static final double C5 = 523.25;
   private static final double D5 = 587.33;
   private static final double C6 = 1046.50;
@@ -42,9 +43,9 @@ public class AudioTrackPlayer {
   private static final double C7 = 2093.00;
   private static final double E6 = 1318.51;
   private static final double E7 = 2637.02;
-  private static byte[] HI = generate(0.075, D6, E6, D6, E6, D6);
-  private static byte[] LO = generate(0.1, D5, B4, C5, B4, D5);
-  private static byte[] HIHI = generate(0.1, E6, E7, E6, E7, E6, E7, E6, E7, E6);
+  private static byte[] HI = generate(0.1, C6, NO, D6);
+  private static byte[] LO = generate(0.1, D5, NO, C5);
+  private static byte[] HIHI = generate(0.1, D6, E6, E7, D6, E6, E7);
   private static byte[] NORMAL = generate(0.075, C5, B4, C5);
   private static List<byte[]> sounds;
 
@@ -91,7 +92,7 @@ public class AudioTrackPlayer {
 
   private AudioTrack createAudioTrack(final byte[] snd) {
     AudioTrack audioTrack;
-    audioTrack = new AudioTrack(AudioManager.STREAM_NOTIFICATION,
+    audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
             SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO,
             AudioFormat.ENCODING_PCM_16BIT, snd.length,
             AudioTrack.MODE_STATIC);
@@ -110,7 +111,7 @@ public class AudioTrackPlayer {
 
     int index=0;
     for (double frequency : frequencies) {
-      Log.i(TAG, "Writing freq " + frequency + " for " + numSamplesPerSection + " samples.");
+      Log.d(TAG, "Writing freq " + frequency + " for " + numSamplesPerSection + " samples.");
       for (int i = 0; i < numSamplesPerSection; i++) {      // Fill the sample array
         sample[index++] = Math.sin(frequency * 2 * Math.PI * i / (SAMPLE_RATE));
       }
@@ -153,7 +154,7 @@ public class AudioTrackPlayer {
       generatedSnd[idx++] = (byte) ((val & 0xff00) >>> 8);
     }
 
-    Log.i(TAG, "Audio: generated audio buffer with size " + generatedSnd.length);
+    Log.d(TAG, "Audio: generated audio buffer with size " + generatedSnd.length);
 
     return generatedSnd;
   }

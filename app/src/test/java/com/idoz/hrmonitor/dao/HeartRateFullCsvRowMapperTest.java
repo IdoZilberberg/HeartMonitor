@@ -1,7 +1,7 @@
 package com.idoz.hrmonitor.dao;
 
 import com.idoz.hrmonitor.HeartRateDao;
-import com.idoz.hrmonitor.HeartRateRecord;
+import com.idoz.hrmonitor.model.HeartRateFullRecord;
 
 import org.joda.time.DateTime;
 import org.junit.BeforeClass;
@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
  */
 
 @RunWith(MockitoJUnitRunner.class)
-public class HeartRateRecordCsvRowMapperTest {
+public class HeartRateFullCsvRowMapperTest {
 
   @Mock
   HeartRateDao dao;
@@ -33,11 +33,11 @@ public class HeartRateRecordCsvRowMapperTest {
   @Test
   public void testMapRow() throws Exception {
 
-    when(dao.saveHeartRateRecords(anyList())).thenReturn(1);
+    when(dao.save(anyList())).thenReturn(1);
 
-    final HeartRateRecord record = new HeartRateRecord(
+    final HeartRateFullRecord record = new HeartRateFullRecord(
             "IDO", new DateTime(2015, 12, 31, 12, 59, 48), 123);
-    HeartRateRecordCsvRowMapper classUnderTest = new HeartRateRecordCsvRowMapper();
+    HeartRateFullCsvRowMapper classUnderTest = new HeartRateFullCsvRowMapper();
     final String actual = classUnderTest.mapRow(record);
     final String expected = "IDO,2015/12/31,2015/12/31-12:59,2015/12/31-12:59:48,123";
     assertEquals("difference in csv mapper", expected, actual);

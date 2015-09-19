@@ -1,5 +1,8 @@
 package com.idoz.hrmonitor;
 
+import com.idoz.hrmonitor.model.HeartRateFullRecord;
+import com.idoz.hrmonitor.model.HeartRateRecord;
+
 import java.util.List;
 
 /**
@@ -7,7 +10,8 @@ import java.util.List;
  */
 public interface HeartRateDao {
 
-  int saveHeartRateRecords(final List<HeartRateRecord> heartRateRecords);
+  int save(final List<? extends HeartRateRecord> heartRateRecords);
 
+  int save(final HeartRateRecord heartRateRecord);
 
 }

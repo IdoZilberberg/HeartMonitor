@@ -1,17 +1,17 @@
-package com.idoz.hrmonitor;
+package com.idoz.hrmonitor.model;
 
 import org.joda.time.DateTime;
 
 /**
  * Created by izilberberg on 8/25/15.
  */
-public class HeartRateRecord {
+public class HeartRateFullRecord implements HeartRateRecord {
 
   private final String user;
   private final DateTime date;
   private final int heartRate;
 
-  public HeartRateRecord(String user, DateTime date, int heartRate) {
+  public HeartRateFullRecord(String user, DateTime date, int heartRate) {
     this.user = user;
     this.date = date;
     this.heartRate = heartRate;
