@@ -1,6 +1,5 @@
 package com.idoz.hrmonitor.logger;
 
-import android.content.Context;
 import android.util.Log;
 
 import com.idoz.hrmonitor.dao.HeartRateAggregatedCsvRowMapper;
@@ -9,6 +8,7 @@ import com.idoz.hrmonitor.model.HeartRateAggregatedRecord;
 
 import org.joda.time.DateTime;
 
+import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -23,27 +23,27 @@ public class HeartRateAggregatorLogger extends AbstractHeartRateLogger {
   private final static String heartRateLoggerFilenamePrefix = "heartRateAgg_";
   private static final int AGG_COUNT = 60;
 
-  private final List<Integer> heartRateHistory;
+  // state
+  private final List<Integer> heartRateBuffer;
 
-  public HeartRateAggregatorLogger(final Context context) {
-    super(context);
-    heartRateHistory = new LinkedList<>();
+  public HeartRateAggregatorLogger(final File targetDir) {
+    super(targetDir);
+    heartRateBuffer = new LinkedList<>();
   }
 
   @Override
   public int onHeartRateChange(final int newHeartRate) {
-    Log.d(TAG, ">> Got new HR: " + newHeartRate);
+    //Log.d(TAG, ">> Got new HR: " + newHeartRate);
     if (!isLogging()) {
       return 0;
     }
 
-
-
-    if ( heartRateHistory.size() >= AGG_COUNT) {
+    if (heartRateBuffer.size() >= AGG_COUNT) {
       flush();
     }
-    heartRateHistory.add(newHeartRate);
-    final int percentMemoryFull = (int)((heartRateHistory.size() / (double)AGG_COUNT) * 100.0);
+
+    heartRateBuffer.add(newHeartRate);
+    final int percentMemoryFull = (int) ((heartRateBuffer.size() / (double) AGG_COUNT) * 100.0);
     Log.i(TAG, "Memory is " + percentMemoryFull + "% full.");
     return percentMemoryFull;
   }
@@ -54,17 +54,20 @@ public class HeartRateAggregatorLogger extends AbstractHeartRateLogger {
   }
 
   private int flush() {
-    HeartRateAggregatedRecord record = aggregate(heartRateHistory);
+    HeartRateAggregatedRecord record = aggregate(heartRateBuffer);
     final int count = heartRateDao.save(record);
-    heartRateHistory.clear();
-
+    heartRateBuffer.clear();
+    Log.i(TAG, "Logged average HR " + record.getHrAverage() + " from " + record.getSamples() + " samples.");
     return count;
   }
 
-  private HeartRateAggregatedRecord aggregate(List<Integer> heartRateHistory) {
-    HeartRateAggregatedRecord aggregatedRecord = new HeartRateAggregatedRecord(getUsername(), new DateTime(), 123.3);
-
-    return aggregatedRecord;
+  HeartRateAggregatedRecord aggregate(final List<Integer> buf) {
+    int total=0;
+    for (Integer hrValue : buf) {
+      total+=hrValue;
+    }
+    double hrAverage = (buf==null || buf.size()==0) ? 0.0 : total / buf.size();
+    return new HeartRateAggregatedRecord(getUsername(), new DateTime(), hrAverage, buf.size());
   }
 
   @Override

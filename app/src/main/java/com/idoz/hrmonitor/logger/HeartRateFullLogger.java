@@ -1,6 +1,5 @@
 package com.idoz.hrmonitor.logger;
 
-import android.content.Context;
 import android.util.Log;
 
 import com.idoz.hrmonitor.dao.HeartRateFullCsvRowMapper;
@@ -9,6 +8,7 @@ import com.idoz.hrmonitor.model.HeartRateFullRecord;
 
 import org.joda.time.DateTime;
 
+import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -24,15 +24,15 @@ public class HeartRateFullLogger extends AbstractHeartRateLogger {
 
   private final static String heartRateLoggerFilenamePrefix = "heartRate_";
 
-  public HeartRateFullLogger(final Context context) {
-    super(context);
+  public HeartRateFullLogger(final File targetDir) {
+    super(targetDir);
     heartRateFullRecords = new LinkedList<>();
   }
 
 
   @Override
   public int onHeartRateChange(final int newHeartRate) {
-    Log.d(TAG, ">> Got new HR: " + newHeartRate);
+    //Log.d(TAG, ">> Got new HR: " + newHeartRate);
     if (!isLogging()) {
       return 0;
     }
@@ -41,7 +41,7 @@ public class HeartRateFullLogger extends AbstractHeartRateLogger {
       flush();
     }
     heartRateFullRecords.add(new HeartRateFullRecord(getUsername(), new DateTime(), newHeartRate));
-    final int percentMemoryFull = (int)((heartRateFullRecords.size() / (double)maxHeartRateRecordsInMemory) * 100.0);
+    final int percentMemoryFull = (int) ((heartRateFullRecords.size() / (double) maxHeartRateRecordsInMemory) * 100.0);
     Log.i(TAG, "Memory is " + percentMemoryFull + "% full.");
     return percentMemoryFull;
   }

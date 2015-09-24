@@ -1,11 +1,10 @@
 package com.idoz.hrmonitor.logger;
 
-import android.content.Context;
-import android.util.Log;
-
 import com.idoz.hrmonitor.HeartRateDao;
 import com.idoz.hrmonitor.dao.HeartRateCsvDao;
 import com.idoz.hrmonitor.dao.HeartRateRowMapper;
+
+import java.io.File;
 
 /**
  * Created by izilberberg on 9/18/15.
@@ -14,12 +13,12 @@ public abstract class AbstractHeartRateLogger implements HeartRateLogger {
 
   private final static String TAG = AbstractHeartRateLogger.class.getSimpleName();
 
-  final HeartRateDao heartRateDao;
+  HeartRateDao heartRateDao;
   private String username = "NA";
   protected boolean logging = false;
 
-  public AbstractHeartRateLogger(final Context context) {
-    heartRateDao = createDao(context);
+  public AbstractHeartRateLogger(final File targetDir) {
+    heartRateDao = createDao(targetDir);
   }
 
   @Override
@@ -37,8 +36,12 @@ public abstract class AbstractHeartRateLogger implements HeartRateLogger {
     return 0;
   }
 
-  private HeartRateDao createDao(final Context context) {
-    return new HeartRateCsvDao(context, getMapper(), getHeartRateLoggerFilenamePrefix());
+  private HeartRateDao createDao(final File targetDir) {
+    return new HeartRateCsvDao(targetDir, getMapper(), getHeartRateLoggerFilenamePrefix());
+  }
+
+  public void setHeartRateDao(final HeartRateDao heartRateDao)  {
+    this.heartRateDao = heartRateDao;
   }
 
   public String getUsername() {

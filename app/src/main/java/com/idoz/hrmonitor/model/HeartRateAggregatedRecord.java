@@ -9,12 +9,14 @@ public class HeartRateAggregatedRecord implements HeartRateRecord {
   private final String user;
   private final DateTime date;
   private final double hrAverage;
+  private final int samples;
 
 
-  public HeartRateAggregatedRecord(String user, DateTime date, double hrAverage) {
+  public HeartRateAggregatedRecord(final String user, final DateTime date, final double hrAverage, final int samples) {
     this.user = user;
     this.date = date;
     this.hrAverage = hrAverage;
+    this.samples = samples;
   }
 
   public String getUser() {
@@ -27,5 +29,9 @@ public class HeartRateAggregatedRecord implements HeartRateRecord {
 
   public double getHrAverage() {
     return hrAverage;
+  }
+
+  public int getSamples() {
+    return samples;
   }
 }

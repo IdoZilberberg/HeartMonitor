@@ -77,6 +77,12 @@ public class HRSensorService extends Service {
   private final IBinder binder = new LocalBinder();
 
   @Override
+  public int onStartCommand(Intent intent, int flags, int startId) {
+
+    return super.onStartCommand(intent, flags, startId);
+  }
+
+  @Override
   public IBinder onBind(Intent intent) {
     Log.i(TAG, "Binding HR Sensor service");
     handler = new Handler();
@@ -135,7 +141,7 @@ public class HRSensorService extends Service {
           Log.i(TAG, "Connected to HR Sensor, starting service discovery.");
           handler.removeCallbacks(onServiceDiscoveryTimeout);
           handler.postDelayed(onServiceDiscoveryTimeout, 5000);
-          if(deviceCommunicator==null)  {
+          if (deviceCommunicator == null) {
             connectToDevice();
           }
           deviceCommunicator.discoverServices();
@@ -226,7 +232,7 @@ public class HRSensorService extends Service {
         format = BluetoothGattCharacteristic.FORMAT_UINT8;
       }
       final int heartRate = characteristic.getIntValue(format, 1);
-      Log.d(TAG, String.format("Received heart rate: %d", heartRate));
+      Log.v(TAG, String.format("Received heart rate: %d", heartRate));
       intent.putExtra(EXTRA_DATA, String.valueOf(heartRate));
     } else {
       // For all other profiles, writes the data formatted in HEX.

@@ -1,12 +1,9 @@
 package com.idoz.hrmonitor.dao;
 
-import android.content.Context;
 import android.os.Environment;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.idoz.hrmonitor.HeartRateDao;
-import com.idoz.hrmonitor.model.HeartRateFullRecord;
 import com.idoz.hrmonitor.model.HeartRateRecord;
 
 import org.joda.time.DateTime;
@@ -27,12 +24,12 @@ public class HeartRateCsvDao implements HeartRateDao {
 
   private final static String TAG = HeartRateCsvDao.class.getSimpleName();
   private final static DateTimeFormatter fmtDateCompact = DateTimeFormat.forPattern("yyyyMMdd");
-  private final Context context;
+  private final File targetDir;
   final HeartRateRowMapper mapper;
   private final String filenamePrefix;
 
-  public HeartRateCsvDao(final Context context, final HeartRateRowMapper mapper, final String filenamePrefix) {
-    this.context = context;
+  public HeartRateCsvDao(final File targetDir, final HeartRateRowMapper mapper, final String filenamePrefix) {
+    this.targetDir = targetDir;
     this.mapper = mapper;
     this.filenamePrefix = filenamePrefix;
   }
@@ -46,7 +43,7 @@ public class HeartRateCsvDao implements HeartRateDao {
   public int save(List<? extends HeartRateRecord> heartRateRecords) {
     final String filename = filenamePrefix + fmtDateCompact.print(new DateTime()) + ".csv";
     if (!externalStorageAvailable()) {
-      Log.w(TAG, "External storage unavailable! cannot write data");
+      Log.e(TAG, "External storage unavailable! cannot write data");
       return -1;
     }
     if (heartRateRecords == null || heartRateRecords.size() == 0) {
@@ -57,12 +54,11 @@ public class HeartRateCsvDao implements HeartRateDao {
 
     try {
       //final File outputFile = new File(Environment.getExternalStorageDirectory(), filenamePrefix);
-      final File dir = context.getExternalFilesDir("hrlogs");
-      if (dir==null || (!dir.exists() && !dir.mkdirs())) {
-        Log.w(TAG, "Cannot create directory " + dir.getAbsolutePath());
+      if (targetDir==null || (!targetDir.exists() && !targetDir.mkdirs())) {
+        Log.w(TAG, "Cannot create directory " + targetDir.getAbsolutePath());
         return -1;
       }
-      final File outputFile = new File(dir, filename);
+      final File outputFile = new File(targetDir, filename);
       if (!outputFile.exists()) {
         outputFile.createNewFile();
         Log.i(TAG, "Created new file " + outputFile.getAbsolutePath());
@@ -79,7 +75,6 @@ public class HeartRateCsvDao implements HeartRateDao {
       fos.close();
       Log.i(TAG, "Successfully wrote " + recordsWritten + " records to file " + outputFile.getAbsolutePath());
     } catch (IOException e) {
-      Toast.makeText(context, "Failed to save to file!", Toast.LENGTH_LONG).show();
       Log.w(TAG, "Failed to save heart rate data to file " + filename + ". Reason: " + e.getMessage());
       e.printStackTrace();
       return -1;

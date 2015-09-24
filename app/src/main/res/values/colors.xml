@@ -2,4 +2,5 @@
 <resources>
     <color name="colorPrimary">#e91e63</color>
     <color name="colorPrimaryDark">#c2185b</color>
+    <color name="black">#000000</color>
 </resources>
