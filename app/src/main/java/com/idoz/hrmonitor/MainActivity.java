@@ -1,5 +1,6 @@
 package com.idoz.hrmonitor;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -108,6 +109,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   };
 
 
+  @SuppressLint("ShowToast")
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -142,7 +144,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   protected void onStart() {
     super.onStart();
     Log.i(TAG, "*** onStart()");
-    //checkBluetoothEnabled();
     checkBluetoothEnabled();
     if (!bluetoothEnabled) {
       return;
@@ -506,10 +507,16 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   }
 
   private void refreshHRSensorConnectionIndicator() {
-    if (hrSensorConnectionState == CONNECTED) {
-      hrSensorConnectedIndicatorImageView.setVisibility(View.VISIBLE);
-    } else {
-      hrSensorConnectedIndicatorImageView.setVisibility(View.INVISIBLE);
+
+    if(!bluetoothEnabled) {
+      hrSensorConnectedIndicatorImageView.setImageResource(R.drawable.bt_disabled);
+      return;
+    }
+
+    switch(hrSensorConnectionState) {
+      case CONNECTED: hrSensorConnectedIndicatorImageView.setImageResource(R.drawable.bt_connected); break;
+      case CONNECTING: hrSensorConnectedIndicatorImageView.setImageResource(R.drawable.bt_searching); break;
+      default: hrSensorConnectedIndicatorImageView.setImageResource(R.drawable.bt_enabled); break;
     }
   }
 

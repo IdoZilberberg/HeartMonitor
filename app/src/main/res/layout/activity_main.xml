@@ -41,13 +41,12 @@
             android:layout_weight="2"/>
         <ToggleButton
             android:id="@+id/orientationToggleButton"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:text="New ToggleButton"
-            android:textOff="Reverse"
-            android:textOn="Normal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:textSize="18sp"
-            android:layout_weight="2"/>
+            android:background="@drawable/reverse_orientation"
+            android:textOff="&quot;&quot;"
+            android:textOn="&quot;&quot;"/>
 
 
     </LinearLayout>
@@ -57,7 +56,7 @@
         style="@style/hrText"
         android:layout_weight="1.75"
         android:text="@string/heartrate_unknown"
-        />
+        android:textColor="@android:color/white"/>
     <ImageView
         android:layout_width="fill_parent"
         android:layout_height="0px"
@@ -81,7 +80,7 @@
             android:format24Hour="HH:mm"
             android:inputType="time"
             android:textSize="48sp"
-            />
+            android:textColor="@android:color/holo_orange_dark"/>
 
         <TextView
             android:id="@+id/temperatureText"
@@ -105,7 +104,6 @@
             android:layout_width="0px"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="@drawable/bluetooth_128"
             android:contentDescription="@string/desc_bluetooth_connection"
             />
 
