@@ -68,26 +68,29 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private boolean isHRrSensorBroadcastReceiverRegistered = false;
   private Handler handler;
   private boolean hrMockingActive = false;
+  private boolean doubleBackToExitPressedOnce;
 
   private TextView heartRateText;
   private TextView usernameText;
   private ImageView hrSensorConnectedIndicatorImageView;
   private ProgressBar heartRateMemoryDataProgressBar;
   private ToggleButton mockToggleButton;
-
   // prefs
   private SharedPreferences SP;
+
   private String username = "NA";
   private int maxHeartRate = MAX_HR_NOT_SET, minHeartRate = MIN_HR_NOT_SET;
-
-
   // connections
   private HRSensorService hrSensorService;
+
+
   private HrLoggerService hrLoggerService;
   private HrSensorServiceConnection hrSensorServiceConnection = null;
   private HrLoggerServiceConnection hrLoggerServiceConnection = null;
   private BroadcastReceiver bluetoothOnOffStateReceiver = null;
   private AudioTrackPlayer audioTrackPlayer = null;
+
+  private Toast exitToast;
 
 
   final Runnable onCreateMockHrData = new Runnable() {
@@ -121,6 +124,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 //    registerReceiver(bluetoothOnOffStateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
     handler = new Handler();
     audioTrackPlayer = new AudioTrackPlayer();
+    exitToast = Toast.makeText(this, "Tap BACK again to exit", Toast.LENGTH_SHORT);
 
 //    hrSensorServiceConnection = new HrSensorServiceConnection();
     //hrLoggerServiceConnection = new HrLoggerServiceConnection();
@@ -192,6 +196,25 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     Log.i(TAG, "*** onDestroy()");
     tryUnregisterHRSensorBroadcastReceiver();
     tryUnregisterBluetoothOnOffStateReceiver();
+
+    if (handler != null) {
+      handler.removeCallbacks(resetDoubleBackFlag);
+    }
+  }
+
+  @Override
+  public void onBackPressed() {
+    if(doubleBackToExitPressedOnce) {
+      exitToast.cancel();
+      super.onBackPressed();
+      shutdown();
+      return;
+    }
+    this.doubleBackToExitPressedOnce = true;
+    exitToast.show();
+
+    handler.postDelayed(resetDoubleBackFlag, 2000);
+
   }
 
   private void shutdown() {
@@ -329,9 +352,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         return true;
       case R.id.menu_settings:
         startActivity(new Intent(this, SettingsActivity.class));
-        return true;
-      case R.id.menu_exit:
-        shutdown();
         return true;
 
       default:
@@ -775,6 +795,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       }
     }
   }
+
+  private final Runnable resetDoubleBackFlag = new Runnable() {
+    @Override
+    public void run() {
+      doubleBackToExitPressedOnce = false;
+    }
+  };
 
 }
 
