@@ -78,21 +78,30 @@ public class HRSensorService extends Service {
 
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
-
+    handler = new Handler();
+    connectToDevice();
     return super.onStartCommand(intent, flags, startId);
+  }
+
+  @Override
+  public void onDestroy() {
+    super.onDestroy();
+    cleanup();
+  }
+
+  private void cleanup() {
+    disconnectFromDevice();
   }
 
   @Override
   public IBinder onBind(Intent intent) {
     Log.i(TAG, "Binding HR Sensor service");
-    handler = new Handler();
-    connectToDevice();
     return binder;
   }
 
   @Override
   public boolean onUnbind(Intent intent) {
-    disconnectFromDevice();
+//    disconnectFromDevice();
     return super.onUnbind(intent);
   }
 

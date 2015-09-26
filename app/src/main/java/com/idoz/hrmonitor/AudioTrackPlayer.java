@@ -43,10 +43,10 @@ public class AudioTrackPlayer {
   private static final double C7 = 2093.00;
   private static final double E6 = 1318.51;
   private static final double E7 = 2637.02;
-  private static byte[] HI = generate(0.1, C6, NO, D6);
-  private static byte[] LO = generate(0.1, D5, NO, C5);
-  private static byte[] HIHI = generate(0.1, D6, E6, E7, D6, E6, E7);
-  private static byte[] NORMAL = generate(0.075, C5, B4, C5);
+  private static byte[] HI = generate(0.05, C6, NO, D6);
+  private static byte[] LO = generate(0.05, D5, NO, C5);
+  private static byte[] HIHI = generate(0.05, D6, E6, E7, D6, E6, E7);
+  private static byte[] NORMAL = generate(0.05, C5, B4, C5);
   private static List<byte[]> sounds;
 
   private boolean isInit = false;
@@ -92,7 +92,7 @@ public class AudioTrackPlayer {
 
   private AudioTrack createAudioTrack(final byte[] snd) {
     AudioTrack audioTrack;
-    audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
+    audioTrack = new AudioTrack(AudioManager.STREAM_NOTIFICATION,
             SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO,
             AudioFormat.ENCODING_PCM_16BIT, snd.length,
             AudioTrack.MODE_STATIC);

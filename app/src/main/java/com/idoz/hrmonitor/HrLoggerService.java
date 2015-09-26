@@ -67,14 +67,15 @@ public class HrLoggerService extends Service {
 
   @Override
   public void onDestroy() {
-    cleanup();
     super.onDestroy();
+    cleanup();
   }
 
   private void cleanup() {
     Log.i(TAG, "Cleaning up...");
     unregisterReceiver(hrSensorBroadcastReceiver);
     stopLogging();
+    stopSelf();
   }
 
   public void startLogging(final String username) {

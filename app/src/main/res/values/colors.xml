@@ -2,5 +2,10 @@
 <resources>
     <color name="colorPrimary">#e91e63</color>
     <color name="colorPrimaryDark">#c2185b</color>
-    <color name="black">#000000</color>
+    <color name="appBackground">#000000</color>
+    <color name="textColorHrTooHigh">#CC4400</color>
+    <color name="textColorHrTooLow">#0077FF</color>
+    <color name="textColorHrInRange">#009900</color>
+    <color name="textColorHrNA">#666666</color>
+    <color name="buttonBackground">#00AAAA</color>
 </resources>

@@ -7,7 +7,7 @@
               android:layout_alignParentTop="true"
               android:orientation="vertical"
               android:showDividers="beginning|middle|end"
-              android:background="@color/black"
+              android:background="@color/appBackground"
               tools:context=".MainActivity">
     <!-- Toolbar -->
 
@@ -15,18 +15,20 @@
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="0px"
-        android:layout_weight=".5"
-        android:orientation="horizontal">
+        android:layout_weight="0.6"
+        android:orientation="horizontal"
+        android:layout_marginTop="2dp">
 
         <TextView
             android:id="@+id/usernameText"
             android:layout_width="0px"
             android:layout_height="match_parent"
             android:layout_gravity="center_horizontal"
-            android:layout_weight="3"
+            android:layout_weight="4"
             android:gravity="center_vertical|center_horizontal"
             android:text="@string/username"
             android:textSize="36sp"
+            android:textColor="@android:color/holo_orange_dark"
             />
 
         <ToggleButton
@@ -37,16 +39,17 @@
             android:textOff="Mock On"
             android:textOn="Mock Off"
             android:textSize="18sp"
-            android:visibility="gone"
-            android:layout_weight="2"/>
-        <ToggleButton
+            android:visibility="invisible"
+            android:background="@color/buttonBackground"
+            android:layout_weight="1"/>
+        <ImageButton
             android:id="@+id/orientationToggleButton"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:textSize="18sp"
-            android:background="@drawable/reverse_orientation"
-            android:textOff="&quot;&quot;"
-            android:textOn="&quot;&quot;"/>
+            android:background="@color/appBackground"
+            android:scaleType="centerInside"
+            android:src="@drawable/reverse_orientation"
+            android:layout_weight="1"/>
 
 
     </LinearLayout>
@@ -116,7 +119,8 @@
         android:layout_weight="0.5"
         android:textOff="Start logging"
         android:textOn="Stop logging"
-        android:textSize="32sp"/>
+        android:textSize="32sp"
+        android:background="@color/buttonBackground"/>
 
     <ProgressBar
         android:id="@+id/heartRateMemoryDataProgressBar"
