@@ -62,8 +62,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private static final int NOTIFICATION_MAIN = 1;
   private static final IntentFilter hrSensorServiceIntentFilter = createHrSensorIntentFilters();
   NotificationManager notificationManager;
-  Intent resultIntent;
-  PendingIntent resultPendingIntent;
+  Intent notificationIntent;
+  PendingIntent contentIntent;
 
   // state (mutable)
   private ConnectionState hrSensorConnectionState = DISCONNECTED;
@@ -81,6 +81,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private ImageView hrSensorConnectedIndicatorImageView;
   private ProgressBar heartRateMemoryDataProgressBar;
   private ToggleButton mockToggleButton;
+  private ToggleButton audioCuesButton;
   // prefs
   private SharedPreferences SP;
 
@@ -135,14 +136,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     //hrLoggerServiceConnection = new HrLoggerServiceConnection();
   }
 
-  private void initNotifications() {
-    notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-    resultIntent = new Intent(this, MainActivity.class);
-    resultPendingIntent = PendingIntent.getActivity(this, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-  }
-
-
   @Override
   protected void onStart() {
     super.onStart();
@@ -156,6 +149,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
   }
 
+
   @Override
   protected void onResume() {
     super.onResume();
@@ -166,7 +160,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     tryRegisterBluetoothOnOffStateReceiver();
     tryRegisterHRSensorBroadcastReceiver();
     initNotifications();
-    updateNotificationBar();
+    updateNotifications();
   }
 
   @Override
@@ -179,7 +173,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     tryUnbindHRSensorService();
   }
 
-
   @Override
   protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
@@ -189,6 +182,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       shutdown();
     }
   }
+
 
   @Override
   protected void onStop() {
@@ -237,19 +231,31 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     finish();
   }
 
-  private void updateNotificationBar() {
+  private void initNotifications() {
+    Log.i(TAG, "=== initNotifications() ===");
+    notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+    notificationIntent = new Intent(getApplicationContext(), MainActivity.class);
+    contentIntent = PendingIntent.getActivity(getApplicationContext(), NOTIFICATION_MAIN,
+            notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-    Log.i(TAG, "=== add notification ===");
+  }
 
-    notificationManager.notify(NOTIFICATION_MAIN, new NotificationCompat.Builder(this)
-            .setSmallIcon(R.drawable.heart_512)
+  private void updateNotifications() {
+
+    Log.i(TAG, "=== updateNotifications() ===");
+
+    final NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
+            .setSmallIcon(R.drawable.bluetooth_128)
+            .setContentIntent(contentIntent)
             .setContentTitle("Heart Rate Monitor")
             .setContentText("Connected")
-            .setColor(Color.GREEN)
+            .setColor(Color.BLUE)
             .setCategory(Notification.CATEGORY_SERVICE)
-            .setOngoing(true) // prevent removal
-            .addAction(R.drawable.heart_512, "Show", resultPendingIntent)
-            .build());
+            .setOngoing(true)
+//            .addAction(R.drawable.heart_512, "Show", contentIntent)
+            ;
+
+    notificationManager.notify(NOTIFICATION_MAIN, builder.build());
 
   }
 
@@ -396,7 +402,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
       }
     });
-    final ImageButton reverseOrientationButton = (ImageButton) findViewById(R.id.orientationToggleButton);
+    final ImageButton reverseOrientationButton = (ImageButton) findViewById(R.id.reverseOrientationButton);
     reverseOrientationButton.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
@@ -404,6 +410,18 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         isReversedOrientation = !isReversedOrientation;
       }
     });
+    audioCuesButton = (ToggleButton)findViewById(R.id.audioCuesButton);
+    audioCuesButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+      @Override
+      public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putBoolean(getString(R.string.setting_alert_outside_hr_range), isChecked);
+        editor.commit();
+        hrLoggerServiceConnection.updatePreferences(PreferenceManager.getDefaultSharedPreferences(MainActivity.this));
+      }
+    });
+
     mockToggleButton = (ToggleButton) findViewById(R.id.mockToggleButton);
     mockToggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
       @Override
@@ -629,7 +647,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     setHeartRateNewValue(newHeartRate);
 //    heartRateMemoryDataProgressBar.setProgress(progress);
     heartRateMemoryDataProgressBar.setProgress(0);
-    //updateNotificationBar();
+    //updateNotifications();
   }
 
 

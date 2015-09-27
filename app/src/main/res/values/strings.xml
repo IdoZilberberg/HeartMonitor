@@ -52,4 +52,6 @@
     <string name="default_username">NA</string>
     <string name="menu_exit">Exit</string>
     <string name="desc_bluetooth_connection">Bluetooth Connection</string>
+    <string name="audioCuesButtonDescription">Audio Cues On/Off</string>
+    <string name="reverseOrientationButtonDescription">Reverse Orientation</string>
 </resources>

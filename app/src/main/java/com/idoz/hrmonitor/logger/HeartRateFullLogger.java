@@ -42,7 +42,7 @@ public class HeartRateFullLogger extends AbstractHeartRateLogger {
     }
     heartRateFullRecords.add(new HeartRateFullRecord(getUsername(), new DateTime(), newHeartRate));
     final int percentMemoryFull = (int) ((heartRateFullRecords.size() / (double) maxHeartRateRecordsInMemory) * 100.0);
-    Log.i(TAG, "Memory is " + percentMemoryFull + "% full.");
+    Log.d(TAG, "Memory is " + percentMemoryFull + "% full.");
     return percentMemoryFull;
   }
 

@@ -117,7 +117,7 @@ public class HrLoggerService extends Service {
   }
 
   void onReceiveHeartRateData(final int heartRate) {
-    Log.i(TAG, ">> Received HR data: " + heartRate);
+    Log.d(TAG, ">> Received HR data: " + heartRate);
     setIsBackToNormalHrRange(lastHeartRate, heartRate);
     for (HeartRateLogger logger : loggers) {
       logger.onHeartRateChange(heartRate);

@@ -44,7 +44,7 @@ public class HeartRateAggregatorLogger extends AbstractHeartRateLogger {
 
     heartRateBuffer.add(newHeartRate);
     final int percentMemoryFull = (int) ((heartRateBuffer.size() / (double) AGG_COUNT) * 100.0);
-    Log.i(TAG, "Memory is " + percentMemoryFull + "% full.");
+    Log.d(TAG, "Memory is " + percentMemoryFull + "% full.");
     return percentMemoryFull;
   }
 
