@@ -43,12 +43,12 @@
 
             android:layout_weight="1"/>
 
-        <ToggleButton
+        <ImageButton
             android:id="@+id/audioCuesButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:background="@color/appBackground"
             android:scaleType="centerInside"
+            android:background="@color/appBackground"
             android:src="@drawable/audio_cues"
             android:layout_weight="1"
             android:contentDescription="@string/audioCuesButtonDescription"/>
@@ -131,7 +131,7 @@
         android:textOff="Start logging"
         android:textOn="Stop logging"
         android:textSize="32sp"
-        android:background="@color/buttonBackground"/>
+        android:background="@drawable/green_button"/>
 
     <ProgressBar
         android:id="@+id/heartRateMemoryDataProgressBar"

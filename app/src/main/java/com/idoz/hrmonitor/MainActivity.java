@@ -2,7 +2,6 @@ package com.idoz.hrmonitor;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
@@ -81,7 +80,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private ImageView hrSensorConnectedIndicatorImageView;
   private ProgressBar heartRateMemoryDataProgressBar;
   private ToggleButton mockToggleButton;
-  private ToggleButton audioCuesButton;
   // prefs
   private SharedPreferences SP;
 
@@ -103,9 +101,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   final Runnable onCreateMockHrData = new Runnable() {
     @Override
     public void run() {
-      final int mockedHR = (int) (Math.random() * (maxHeartRate - minHeartRate + 40) + minHeartRate - 15);
+      final int mockedHR = (int) (Math.random() * (maxHeartRate - minHeartRate + 30) + minHeartRate - 10);
       onReceiveHeartRateData(mockedHR);
-      hrLoggerServiceConnection.onReceiveHeartRateData(mockedHR);
+      if(hrLoggerServiceConnection!=null) {
+        hrLoggerServiceConnection.onReceiveHeartRateData(mockedHR);
+      }
       if (hrMockingActive) {
         handler.postDelayed(onCreateMockHrData, 1000);
       } else {
@@ -245,12 +245,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     Log.i(TAG, "=== updateNotifications() ===");
 
     final NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
-            .setSmallIcon(R.drawable.bluetooth_128)
+            .setSmallIcon(R.drawable.hrmonitor_logo_white_outline)
             .setContentIntent(contentIntent)
             .setContentTitle("Heart Rate Monitor")
             .setContentText("Connected")
             .setColor(Color.BLUE)
-            .setCategory(Notification.CATEGORY_SERVICE)
+            //.setCategory(Notification.CATEGORY_STATUS)
             .setOngoing(true)
 //            .addAction(R.drawable.heart_512, "Show", contentIntent)
             ;
@@ -294,7 +294,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
   @Override
   public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-
+    Log.i(TAG, ">>>>> UpdatePrefs(): key=" + key);
     if (getString(R.string.setting_username).equals(key)) {
       usernameText.setText(sharedPreferences.getString(key, "NA"));
       return;
@@ -410,15 +410,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         isReversedOrientation = !isReversedOrientation;
       }
     });
-    audioCuesButton = (ToggleButton)findViewById(R.id.audioCuesButton);
-    audioCuesButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+    final ImageButton audioCuesButton = (ImageButton) findViewById(R.id.audioCuesButton);
+    audioCuesButton.setOnClickListener(new View.OnClickListener() {
       @Override
-      public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putBoolean(getString(R.string.setting_alert_outside_hr_range), isChecked);
-        editor.commit();
-        hrLoggerServiceConnection.updatePreferences(PreferenceManager.getDefaultSharedPreferences(MainActivity.this));
+      public void onClick(View v) {
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        final boolean playAlertIfOutsideHrRange = prefs.getBoolean(getString(R.string.setting_alert_outside_hr_range), false);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean(getString(R.string.setting_alert_outside_hr_range), !playAlertIfOutsideHrRange);
+        editor.apply();
       }
     });
 
@@ -602,9 +602,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private void tryBindHrLoggerService() {
     hrLoggerServiceConnection = new HrLoggerServiceConnection();
     bindService(new Intent(this, HrLoggerService.class), hrLoggerServiceConnection, BIND_AUTO_CREATE);
-    if(hrLoggerServiceConnection!=null) {
-      hrLoggerServiceConnection.updatePreferences(PreferenceManager.getDefaultSharedPreferences(this));
-    }
 
   }
 
@@ -814,12 +811,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     public void onServiceDisconnected(ComponentName name) {
       hrLoggerService = null;
 
-    }
-
-    public void updatePreferences(final SharedPreferences sharedPreferences) {
-      if(hrLoggerService != null) {
-        hrLoggerService.updatePreferences(sharedPreferences);
-      }
     }
 
     public void onReceiveHeartRateData(final int mockedHR) {

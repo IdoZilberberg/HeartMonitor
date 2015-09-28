@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.idoz.hrmonitor.logger.HeartRateAggregatorLogger;
@@ -21,7 +22,7 @@ import java.util.List;
 /**
  * Created by izilberberg on 9/19/15.
  */
-public class HrLoggerService extends Service {
+public class HrLoggerService extends Service implements SharedPreferences.OnSharedPreferenceChangeListener{
 
   private final static String TAG = HrLoggerService.class.getSimpleName();
   private List<HeartRateLogger> loggers;
@@ -45,6 +46,9 @@ public class HrLoggerService extends Service {
   private Handler handler;
   private AudioTrackPlayer audioTrackPlayer = null;
 
+  // prefs
+  private SharedPreferences SP;
+
   private void createLoggers() {
     if (loggers != null) {
       return;
@@ -62,6 +66,7 @@ public class HrLoggerService extends Service {
     audioTrackPlayer = new AudioTrackPlayer();
     createLoggers();
     registerReceiver(hrSensorBroadcastReceiver, new IntentFilter(HRSensorService.ACTION_DATA_AVAILABLE));
+    initPrefs();
     return super.onStartCommand(intent, flags, startId);
   }
 
@@ -70,6 +75,33 @@ public class HrLoggerService extends Service {
     super.onDestroy();
     cleanup();
   }
+
+  @Override
+  public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+    Log.i(TAG, ">>>>> UpdatePrefs(): key=" + key);
+    if (getString(R.string.setting_alert_outside_hr_range).equals(key)) {
+      playAlertIfOutsideHrRange = sharedPreferences.getBoolean(getString(R.string.setting_alert_outside_hr_range), false);
+      return;
+    }
+    if (getString(R.string.setting_max_hr).equals(key)) {
+      maxHeartRate = Integer.parseInt(sharedPreferences.getString(key, MAX_HR_NOT_SET_STR));
+      return;
+    }
+    if (getString(R.string.setting_min_hr).equals(key)) {
+      minHeartRate = Integer.parseInt(sharedPreferences.getString(key, MIN_HR_NOT_SET_STR));
+    }
+
+  }
+
+  private void initPrefs() {
+    SP = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+    playAlertIfOutsideHrRange = SP.getBoolean(getString(R.string.setting_alert_outside_hr_range), false);
+    maxHeartRate = Integer.parseInt(SP.getString(getString(R.string.setting_max_hr), MAX_HR_NOT_SET_STR));
+    minHeartRate = Integer.parseInt(SP.getString(getString(R.string.setting_min_hr), MIN_HR_NOT_SET_STR));
+
+    SP.registerOnSharedPreferenceChangeListener(this);
+  }
+
 
   private void cleanup() {
     Log.i(TAG, "Cleaning up...");
@@ -92,15 +124,6 @@ public class HrLoggerService extends Service {
       logger.stopLogging();
     }
   }
-
-  public void updatePreferences(final SharedPreferences sharedPreferences) {
-    Log.d(TAG, "updatePreferences(): " + sharedPreferences);
-    playAlertIfOutsideHrRange = sharedPreferences.getBoolean(getString(R.string.setting_alert_outside_hr_range), false);
-    maxHeartRate = Integer.parseInt(sharedPreferences.getString(getString(R.string.setting_max_hr), MAX_HR_NOT_SET_STR));
-    minHeartRate = Integer.parseInt(sharedPreferences.getString(getString(R.string.setting_min_hr), MIN_HR_NOT_SET_STR));
-
-  }
-
 
   public class LocalBinder extends Binder {
     HrLoggerService getService() {
