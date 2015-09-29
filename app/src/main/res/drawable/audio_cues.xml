@@ -4,5 +4,6 @@
     <item android:drawable="@drawable/audio_on"
           android:state_checked="true" />
     <!-- When not selected, use white-->
-    <item android:drawable="@drawable/audio_off"/>
+    <item android:drawable="@drawable/audio_off"
+          android:state_checked="false"/>
 </selector>

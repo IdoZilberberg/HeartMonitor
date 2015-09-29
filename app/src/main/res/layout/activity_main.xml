@@ -39,18 +39,22 @@
             android:textOn="Mock Off"
             android:textSize="18sp"
             android:visibility="invisible"
-            android:background="@color/buttonBackground"
+            android:background="@drawable/green_button"
 
-            android:layout_weight="1"/>
+            android:layout_weight="1.5"/>
 
-        <ImageButton
+        <ToggleButton
             android:id="@+id/audioCuesButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:scaleType="centerInside"
-            android:background="@color/appBackground"
-            android:src="@drawable/audio_cues"
-            android:layout_weight="1"
+            android:background="@drawable/audio_cues"
+            android:layout_weight="1.5"
+            android:focusable="false"
+            android:focusableInTouchMode="false"
+            android:layout_centerVertical="true"
+            android:textOn=""
+            android:textOff=""
             android:contentDescription="@string/audioCuesButtonDescription"/>
         <ImageButton
             android:id="@+id/reverseOrientationButton"
@@ -59,7 +63,7 @@
             android:background="@color/appBackground"
             android:scaleType="centerInside"
             android:src="@drawable/reverse_orientation"
-            android:layout_weight="1"
+            android:layout_weight="1.5"
             android:contentDescription="@string/reverseOrientationButtonDescription"/>
 
 
@@ -125,8 +129,8 @@
 
     <ToggleButton
         android:id="@+id/loggingToggleButton"
-        android:layout_width="match_parent"
-        android:layout_height="0px"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
         android:layout_weight="0.5"
         android:textOff="Start logging"
         android:textOn="Stop logging"

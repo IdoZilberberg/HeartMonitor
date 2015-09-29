@@ -74,12 +74,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private boolean hrMockingActive = false;
   private boolean doubleBackToExitPressedOnce;
   private boolean isReversedOrientation = false;
+  private boolean playHrAudioCues;
 
   private TextView heartRateText;
   private TextView usernameText;
   private ImageView hrSensorConnectedIndicatorImageView;
   private ProgressBar heartRateMemoryDataProgressBar;
   private ToggleButton mockToggleButton;
+  private ToggleButton audioCuesButton;
   // prefs
   private SharedPreferences SP;
 
@@ -288,13 +290,17 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     username = SP.getString(getString(R.string.setting_username), getString(R.string.default_username));
     maxHeartRate = Integer.parseInt(SP.getString(getString(R.string.setting_max_hr), MAX_HR_NOT_SET_STR));
     minHeartRate = Integer.parseInt(SP.getString(getString(R.string.setting_min_hr), MIN_HR_NOT_SET_STR));
-
+    playHrAudioCues = SP.getBoolean(getString(R.string.setting_alert_outside_hr_range), false);
     SP.registerOnSharedPreferenceChangeListener(this);
   }
 
   @Override
   public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
     Log.i(TAG, ">>>>> UpdatePrefs(): key=" + key);
+    if (getString(R.string.setting_alert_outside_hr_range).equals(key)) {
+      playHrAudioCues = SP.getBoolean(getString(R.string.setting_alert_outside_hr_range), false);
+      audioCuesButton.setChecked(playHrAudioCues);
+    }
     if (getString(R.string.setting_username).equals(key)) {
       usernameText.setText(sharedPreferences.getString(key, "NA"));
       return;
@@ -322,7 +328,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       return true;
     }
 
-    mockToggleButton.setVisibility(View.GONE);
+    mockToggleButton.setVisibility(View.INVISIBLE);
     toggleHrMocking(false);
 
     switch (hrSensorConnectionState) {
@@ -410,14 +416,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         isReversedOrientation = !isReversedOrientation;
       }
     });
-    final ImageButton audioCuesButton = (ImageButton) findViewById(R.id.audioCuesButton);
-    audioCuesButton.setOnClickListener(new View.OnClickListener() {
+    audioCuesButton = (ToggleButton) findViewById(R.id.audioCuesButton);
+    audioCuesButton.setChecked(playHrAudioCues);
+    audioCuesButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
       @Override
-      public void onClick(View v) {
+      public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-        final boolean playAlertIfOutsideHrRange = prefs.getBoolean(getString(R.string.setting_alert_outside_hr_range), false);
         SharedPreferences.Editor editor = prefs.edit();
-        editor.putBoolean(getString(R.string.setting_alert_outside_hr_range), !playAlertIfOutsideHrRange);
+        editor.putBoolean(getString(R.string.setting_alert_outside_hr_range), isChecked);
         editor.apply();
       }
     });
