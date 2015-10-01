@@ -5,146 +5,155 @@
               android:layout_height="match_parent"
               android:layout_alignParentStart="true"
               android:layout_alignParentTop="true"
+              android:background="@color/appBackground"
               android:orientation="vertical"
               android:showDividers="beginning|middle|end"
-              android:background="@color/appBackground"
               tools:context=".MainActivity">
-    <!-- Toolbar -->
+  <!-- Toolbar -->
+  <include
+      android:id="@+id/toolbar"
+      layout="@layout/toolbar"/>
 
-    <!--<include layout="@layout/toolbar"/>-->
-    <LinearLayout
-        android:layout_width="fill_parent"
-        android:layout_height="0px"
-        android:layout_weight="0.6"
-        android:orientation="horizontal"
-        android:layout_marginTop="2dp">
-
-        <TextView
-            android:id="@+id/usernameText"
-            android:layout_width="0px"
-            android:layout_height="match_parent"
-            android:layout_gravity="center_horizontal"
-            android:layout_weight="4"
-            android:gravity="center_vertical|center_horizontal"
-            android:text="@string/username"
-            android:textSize="36sp"
-            android:textColor="@android:color/holo_orange_dark"
-            />
-
-        <ToggleButton
-            android:id="@+id/mockToggleButton"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:textOff="Mock On"
-            android:textOn="Mock Off"
-            android:textSize="18sp"
-            android:visibility="invisible"
-            android:background="@drawable/green_button"
-
-            android:layout_weight="1.5"/>
-
-        <ToggleButton
-            android:id="@+id/audioCuesButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:scaleType="centerInside"
-            android:background="@drawable/audio_cues"
-            android:layout_weight="1.5"
-            android:focusable="false"
-            android:focusableInTouchMode="false"
-            android:layout_centerVertical="true"
-            android:textOn=""
-            android:textOff=""
-            android:contentDescription="@string/audioCuesButtonDescription"/>
-        <ImageButton
-            android:id="@+id/reverseOrientationButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:background="@color/appBackground"
-            android:scaleType="centerInside"
-            android:src="@drawable/reverse_orientation"
-            android:layout_weight="1.5"
-            android:contentDescription="@string/reverseOrientationButtonDescription"/>
-
-
-    </LinearLayout>
+  <LinearLayout
+      android:layout_width="fill_parent"
+      android:layout_height="0px"
+      android:layout_marginTop="2dp"
+      android:layout_weight="0.6"
+      android:orientation="horizontal">
 
     <TextView
-        android:id="@+id/heartRateText"
-        style="@style/hrText"
-        android:layout_weight="1.75"
-        android:text="@string/heartrate_unknown"
-        android:textColor="@android:color/white"/>
-    <ImageView
-        android:layout_width="fill_parent"
-        android:layout_height="0px"
-        android:layout_weight="0.5"
+        android:id="@+id/usernameText"
+        android:layout_width="0px"
+        android:layout_height="match_parent"
+        android:layout_gravity="center_horizontal"
+        android:layout_weight="4"
+        android:gravity="center_vertical|center_horizontal"
+        android:text="@string/username"
+        android:textColor="@android:color/holo_orange_dark"
+        android:textSize="36sp"
         />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0px"
-        android:layout_weight="0.5"
-        android:layout_margin="15dp"
-        android:orientation="horizontal">
-
-        <TextClock
-            android:id="@+id/textClock"
-            android:layout_width="0px"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:layout_weight="2"
-            android:format12Hour="hh:mma"
-            android:format24Hour="HH:mm"
-            android:inputType="time"
-            android:textSize="48sp"
-            android:textColor="@android:color/holo_orange_dark"/>
-
-        <TextView
-            android:id="@+id/temperatureText"
-            android:layout_width="0px"
-            android:layout_height="match_parent"
-            android:layout_weight="0.1"
-            android:text="@string/temperature"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:textSize="48sp"
-            android:typeface="monospace"
-            android:visibility="gone"/>
-
-        <View
-            android:id="@+id/emptySpace"
-            android:layout_width="0px"
-            android:layout_height="match_parent"
-            android:layout_weight="0.5"/>
-
-        <ImageView
-            android:id="@+id/btConnectedIndicatorImage"
-            android:layout_width="0px"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:contentDescription="@string/desc_bluetooth_connection"
-            />
-
-    </LinearLayout>
-
+    <ImageButton
+        android:id="@+id/showVolumeButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1.5"
+        android:background="@drawable/green_button"
+        android:contentDescription="@string/showVolumeDescription"
+        android:scaleType="centerInside"
+        android:src="@drawable/volume_control"/>
     <ToggleButton
-        android:id="@+id/loggingToggleButton"
-        android:layout_width="wrap_content"
-        android:layout_height="0dp"
-        android:layout_weight="0.5"
-        android:textOff="Start logging"
-        android:textOn="Stop logging"
-        android:textSize="32sp"
-        android:background="@drawable/green_button"/>
+        android:id="@+id/audioCuesButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_weight="1.5"
+        android:background="@drawable/audio_cues"
+        android:contentDescription="@string/audioCuesButtonDescription"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        android:scaleType="centerInside"
+        android:textOff=""
+        android:textOn=""/>
 
-    <ProgressBar
-        android:id="@+id/heartRateMemoryDataProgressBar"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="fill_parent"
-        android:layout_height="0px"
-        android:layout_gravity="center_horizontal"
-        android:layout_weight="0.2"
-        android:max="100"
-        android:mirrorForRtl="false"/>
+    <ImageButton
+        android:id="@+id/reverseOrientationButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1.5"
+        android:background="@drawable/green_button"
+        android:contentDescription="@string/reverseOrientationButtonDescription"
+        android:scaleType="centerInside"
+        android:src="@drawable/reverse_orientation"/>
+
+
+  </LinearLayout>
+  <ToggleButton
+      android:id="@+id/mockToggleButton"
+      android:layout_width="fill_parent"
+      android:layout_height="0dp"
+      android:layout_weight="0.25"
+      android:background="@drawable/green_button"
+      android:textOff="Mock On"
+      android:textOn="Mock Off"
+      android:textSize="18sp"
+      android:visibility="invisible"/>
+  <TextView
+      android:id="@+id/heartRateText"
+      style="@style/hrText"
+      android:layout_weight="1.75"
+      android:text="@string/heartrate_unknown"
+      android:textColor="@android:color/white"/>
+
+  <ImageView
+      android:layout_width="fill_parent"
+      android:layout_height="0px"
+      android:layout_weight="0.5"
+      />
+
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="0px"
+      android:layout_margin="15dp"
+      android:layout_weight="0.5"
+      android:orientation="horizontal">
+
+    <TextClock
+        android:id="@+id/textClock"
+        android:layout_width="0px"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:layout_weight="2"
+        android:format12Hour="hh:mma"
+        android:format24Hour="HH:mm"
+        android:inputType="time"
+        android:textColor="@android:color/holo_orange_dark"
+        android:textSize="48sp"/>
+
+    <TextView
+        android:id="@+id/temperatureText"
+        android:layout_width="0px"
+        android:layout_height="match_parent"
+        android:layout_weight="0.1"
+        android:text="@string/temperature"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textSize="48sp"
+        android:typeface="monospace"
+        android:visibility="gone"/>
+
+    <View
+        android:id="@+id/emptySpace"
+        android:layout_width="0px"
+        android:layout_height="match_parent"
+        android:layout_weight="0.5"/>
+
+    <ImageView
+        android:id="@+id/btConnectedIndicatorImage"
+        android:layout_width="0px"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:contentDescription="@string/desc_bluetooth_connection"/>
+
+  </LinearLayout>
+
+  <ToggleButton
+      android:id="@+id/loggingToggleButton"
+      android:layout_width="wrap_content"
+      android:layout_height="0dp"
+      android:layout_weight="0.5"
+      android:background="@drawable/green_button"
+      android:textOff="Start logging"
+      android:textOn="Stop logging"
+      android:textSize="32sp"/>
+
+  <ProgressBar
+      android:id="@+id/heartRateMemoryDataProgressBar"
+      style="?android:attr/progressBarStyleHorizontal"
+      android:layout_width="fill_parent"
+      android:layout_height="0px"
+      android:layout_gravity="center_horizontal"
+      android:layout_weight="0.2"
+      android:max="100"
+      android:mirrorForRtl="false"/>
 
 </LinearLayout>

@@ -92,7 +92,7 @@ public class AudioTrackPlayer {
 
   private AudioTrack createAudioTrack(final byte[] snd) {
     AudioTrack audioTrack;
-    audioTrack = new AudioTrack(AudioManager.STREAM_NOTIFICATION,
+    audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
             SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO,
             AudioFormat.ENCODING_PCM_16BIT, snd.length,
             AudioTrack.MODE_STATIC);

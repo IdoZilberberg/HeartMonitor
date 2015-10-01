@@ -82,6 +82,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private ProgressBar heartRateMemoryDataProgressBar;
   private ToggleButton mockToggleButton;
   private ToggleButton audioCuesButton;
+  private ImageButton showVolumeButton;
   // prefs
   private SharedPreferences SP;
 
@@ -105,7 +106,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     public void run() {
       final int mockedHR = (int) (Math.random() * (maxHeartRate - minHeartRate + 30) + minHeartRate - 10);
       onReceiveHeartRateData(mockedHR);
-      if(hrLoggerServiceConnection!=null) {
+      if (hrLoggerServiceConnection != null) {
         hrLoggerServiceConnection.onReceiveHeartRateData(mockedHR);
       }
       if (hrMockingActive) {
@@ -156,7 +157,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   protected void onResume() {
     super.onResume();
     Log.i(TAG, "*** onResume()");
-    setVolumeControlStream(AudioManager.STREAM_NOTIFICATION);
+    setVolumeControlStream(AudioManager.STREAM_MUSIC);
     tryBindHRSensorService();
     tryBindHrLoggerService();
     tryRegisterBluetoothOnOffStateReceiver();
@@ -207,7 +208,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
   @Override
   public void onBackPressed() {
-    if(doubleBackToExitPressedOnce) {
+    if (doubleBackToExitPressedOnce) {
       exitToast.cancel();
       super.onBackPressed();
       shutdown();
@@ -249,10 +250,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     final NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
             .setSmallIcon(R.drawable.hrmonitor_logo_white_outline)
             .setContentIntent(contentIntent)
-            .setContentTitle("Heart Rate Monitor")
-            .setContentText("Connected")
+            .setContentTitle("Heartrate Monitor")
+            .setContentText("OPEN")
             .setColor(Color.BLUE)
-            //.setCategory(Notification.CATEGORY_STATUS)
+                    //.setCategory(Notification.CATEGORY_STATUS)
             .setOngoing(true)
 //            .addAction(R.drawable.heart_512, "Show", contentIntent)
             ;
@@ -384,13 +385,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     setContentView(R.layout.activity_main);
     final Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
     if (toolbar != null) {
-      toolbar.setTitle("HeartRate Logger");
+      toolbar.setTitle("HR Logger");
       setSupportActionBar(toolbar);
+      getSupportActionBar().setDisplayShowHomeEnabled(true);
     }
     heartRateText = (TextView) findViewById(R.id.heartRateText);
     usernameText = (TextView) findViewById(R.id.usernameText);
     usernameText.setText(username);
     hrSensorConnectedIndicatorImageView = (ImageView) findViewById(R.id.btConnectedIndicatorImage);
+    hrSensorConnectedIndicatorImageView.setImageResource(R.drawable.bt_disabled);
     heartRateMemoryDataProgressBar = (ProgressBar) findViewById(R.id.heartRateMemoryDataProgressBar);
     heartRateMemoryDataProgressBar.setProgress(0);
     heartRateMemoryDataProgressBar.setMax(100);
@@ -427,7 +430,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         editor.apply();
       }
     });
-
+    showVolumeButton = (ImageButton) findViewById(R.id.showVolumeButton);
+    showVolumeButton.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        showVolumeControl();
+      }
+    });
     mockToggleButton = (ToggleButton) findViewById(R.id.mockToggleButton);
     mockToggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
       @Override
@@ -440,6 +449,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
       }
     });
+  }
+
+  private void showVolumeControl() {
+    AudioManager audio = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+    audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_SAME, AudioManager.FLAG_SHOW_UI);
   }
 
   private void switchToPortraitOrientation(boolean reversePortrait) {
@@ -540,15 +554,21 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
   private void refreshHRSensorConnectionIndicator() {
 
-    if(!bluetoothEnabled) {
+    if (!bluetoothEnabled) {
       hrSensorConnectedIndicatorImageView.setImageResource(R.drawable.bt_disabled);
       return;
     }
 
-    switch(hrSensorConnectionState) {
-      case CONNECTED: hrSensorConnectedIndicatorImageView.setImageResource(R.drawable.bt_connected); break;
-      case CONNECTING: hrSensorConnectedIndicatorImageView.setImageResource(R.drawable.bt_searching); break;
-      default: hrSensorConnectedIndicatorImageView.setImageResource(R.drawable.bt_enabled); break;
+    switch (hrSensorConnectionState) {
+      case CONNECTED:
+        hrSensorConnectedIndicatorImageView.setImageResource(R.drawable.bt_connected);
+        break;
+      case CONNECTING:
+        hrSensorConnectedIndicatorImageView.setImageResource(R.drawable.bt_searching);
+        break;
+      default:
+        hrSensorConnectedIndicatorImageView.setImageResource(R.drawable.bt_enabled);
+        break;
     }
   }
 
@@ -589,7 +609,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   }
 
   private void tryBindHRSensorService() {
-    if (hrSensorServiceConnection==null) {
+    if (hrSensorServiceConnection == null) {
       hrSensorServiceConnection = new HrSensorServiceConnection();
       boolean bindResult = bindService(
               new Intent(this, HRSensorService.class), hrSensorServiceConnection, BIND_AUTO_CREATE);
@@ -598,7 +618,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   }
 
   private void tryUnbindHRSensorService() {
-    if (hrSensorServiceConnection!=null) {
+    if (hrSensorServiceConnection != null) {
       Log.i(TAG, "Unbinding from HR Sensor service...");
       unbindService(hrSensorServiceConnection);
       hrSensorServiceConnection = null;
@@ -616,6 +636,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     unbindService(hrLoggerServiceConnection);
     hrLoggerServiceConnection = null;
   }
+
   private void userClickedDisconnectHrSensor() {
     Log.i(TAG, "userClickedDisconnectHrSensor()");
     if (DISCONNECTED == hrSensorConnectionState) {
@@ -820,7 +841,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
 
     public void onReceiveHeartRateData(final int mockedHR) {
-      if(hrLoggerService != null) {
+      if (hrLoggerService != null) {
         hrLoggerService.onReceiveHeartRateData(mockedHR);
       }
     }
