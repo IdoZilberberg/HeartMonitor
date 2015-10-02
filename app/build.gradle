@@ -15,6 +15,7 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        multiDexEnabled true
 
     }
     buildTypes {
@@ -27,14 +28,15 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:22.2.1'
-    compile 'net.danlew:android.joda:2.8.2'
     testCompile 'junit:junit:4.12'
     testCompile "org.mockito:mockito-core:1.9.5"
     testCompile 'net.danlew:android.joda:2.8.2'
 // required if you want to use Mockito for Android instrumentation tests
-    compile 'net.danlew:android.joda:2.8.2'
     androidTestCompile 'org.mockito:mockito-core:1.+'
     androidTestCompile "com.google.dexmaker:dexmaker:1.2"
     androidTestCompile "com.google.dexmaker:dexmaker-mockito:1.2"
+    compile 'net.danlew:android.joda:2.8.2'
+    compile 'net.danlew:android.joda:2.8.2'
+    compile 'com.android.support:appcompat-v7:22.2.1'
+    compile 'com.android.support:design:22.2.1'
 }

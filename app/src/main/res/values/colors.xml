@@ -7,5 +7,6 @@
   <color name="textColorHrTooLow">#0077FF</color>
   <color name="textColorHrInRange">#009900</color>
   <color name="textColorHrNA">#666666</color>
-  <color name="buttonBackground">#00AAAA</color>
+  <color name="buttonBackground">#005533</color>
+  <color name="buttonForeground">#ffff8800</color>
 </resources>

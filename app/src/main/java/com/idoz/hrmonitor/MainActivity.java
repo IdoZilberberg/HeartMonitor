@@ -15,6 +15,7 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.media.AudioManager;
@@ -24,15 +25,19 @@ import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -83,6 +88,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private ToggleButton mockToggleButton;
   private ToggleButton audioCuesButton;
   private ImageButton showVolumeButton;
+
+  // For drawer navigation (http://blog.teamtreehouse.com/add-navigation-drawer-android)
+  private ListView mDrawerList;
+  private ArrayAdapter<String> mAdapter;
+  private ActionBarDrawerToggle mDrawerToggle;
+  private DrawerLayout mDrawerLayout;
+  private String mActivityTitle;
   // prefs
   private SharedPreferences SP;
 
@@ -126,6 +138,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     warnIfNoBluetoothCapability();
     initPrefs();
     populateUiVariables();
+
     createBluetoothOnOffStateReceiver();
     startService(new Intent(this, HRSensorService.class));
     startService(new Intent(this, HrLoggerService.class));
@@ -347,20 +360,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     return true;
   }
 
-  private void toggleHrMocking(final boolean isEnabled) {
-    hrMockingActive = isEnabled;
-    if (hrMockingActive) {
-      handler.post(onCreateMockHrData);
-    } else {
-      handler.removeCallbacks(onCreateMockHrData);
-      setHeartRateUnknown();
-    }
-
-  }
-
-
   @Override
   public boolean onOptionsItemSelected(MenuItem item) {
+
+
     final int id = item.getItemId();
     switch (id) {
       case R.id.menu_connect:
@@ -374,21 +377,42 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       case R.id.menu_settings:
         startActivity(new Intent(this, SettingsActivity.class));
         return true;
-
-      default:
-        return super.onOptionsItemSelected(item);
     }
+
+    if (mDrawerToggle.onOptionsItemSelected(item)) {
+      return true;
+    }
+
+    return super.onOptionsItemSelected(item);
+  }
+
+  @Override
+  protected void onPostCreate(Bundle savedInstanceState) {
+    super.onPostCreate(savedInstanceState);
+    mDrawerToggle.syncState();
+  }
+
+  @Override
+  public void onConfigurationChanged(Configuration newConfig) {
+    super.onConfigurationChanged(newConfig);
+    mDrawerToggle.onConfigurationChanged(newConfig);
+  }
+
+  private void toggleHrMocking(final boolean isEnabled) {
+    hrMockingActive = isEnabled;
+    if (hrMockingActive) {
+      handler.post(onCreateMockHrData);
+    } else {
+      handler.removeCallbacks(onCreateMockHrData);
+      setHeartRateUnknown();
+    }
+
   }
 
 
   private void populateUiVariables() {
     setContentView(R.layout.activity_main);
-    final Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-    if (toolbar != null) {
-      toolbar.setTitle("HR Logger");
-      setSupportActionBar(toolbar);
-      getSupportActionBar().setDisplayShowHomeEnabled(true);
-    }
+    initDrawer();
     heartRateText = (TextView) findViewById(R.id.heartRateText);
     usernameText = (TextView) findViewById(R.id.usernameText);
     usernameText.setText(username);
@@ -449,6 +473,47 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
       }
     });
+  }
+
+  private void initDrawer() {
+    mDrawerList = (ListView) findViewById(R.id.navList);
+    mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+    mActivityTitle = getTitle().toString();
+
+    final String[] osArray = {"Android", "iOS", "Windows", "OS X", "Linux"};
+    mAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, osArray);
+    mDrawerList.setAdapter(mAdapter);
+    mDrawerList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+      @Override
+      public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        Toast.makeText(MainActivity.this, "Time for an upgrade!", Toast.LENGTH_SHORT).show();
+      }
+    });
+
+    mDrawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout,
+            R.string.drawer_open, R.string.drawer_close) {
+
+      /** Called when a drawer has settled in a completely open state. */
+      public void onDrawerOpened(View drawerView) {
+        super.onDrawerOpened(drawerView);
+        getSupportActionBar().setTitle("Navigation!");
+        invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
+      }
+
+      /** Called when a drawer has settled in a completely closed state. */
+      public void onDrawerClosed(View view) {
+        super.onDrawerClosed(view);
+        getSupportActionBar().setTitle(mActivityTitle);
+        invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
+      }
+    };
+
+    mDrawerToggle.setDrawerIndicatorEnabled(true);
+    mDrawerLayout.setDrawerListener(mDrawerToggle);
+
+    getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+    getSupportActionBar().setHomeButtonEnabled(true);
+
   }
 
   private void showVolumeControl() {

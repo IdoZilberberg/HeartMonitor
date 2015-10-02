@@ -56,4 +56,8 @@
   <string name="reverseOrientationButtonDescription">Reverse Orientation</string>
   <string name="menu_bt_settings">Bluetooth Settings</string>
   <string name="showVolumeDescription">Show Volume</string>
+  <string name="title_activity_drawer">DrawerActivity</string>
+
+  <string name="drawer_open">Open navigation drawer</string>
+  <string name="drawer_close">Close navigation drawer</string>
 </resources>
