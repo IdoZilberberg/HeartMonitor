@@ -31,11 +31,4 @@
       android:title="@string/menu_disconnect"
       android:icon="@drawable/bt_enabled"
       yourapp:showAsAction="always"/>
-  <item
-      android:id="@+id/menu_settings"
-      android:orderInCategory="300"
-      android:src="@drawable/bt_settings"
-      android:title="@string/menu_settings"
-      yourapp:showAsAction="ifRoom"/>
-
 </menu>

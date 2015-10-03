@@ -60,4 +60,6 @@
 
   <string name="drawer_open">Open navigation drawer</string>
   <string name="drawer_close">Close navigation drawer</string>
+  <string name="drawer_open_title">Go to...</string>
+  <string name="toggleHrConnectionDescription">Toggle HR connection</string>
 </resources>

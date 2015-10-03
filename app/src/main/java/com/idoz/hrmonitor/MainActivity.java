@@ -29,9 +29,11 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
@@ -44,6 +46,9 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.idoz.hrmonitor.AudioTrackPlayer.HrAudioEnum;
+
+import java.util.Arrays;
+import java.util.List;
 
 import static com.idoz.hrmonitor.ConnectionState.CONNECTED;
 import static com.idoz.hrmonitor.ConnectionState.CONNECTING;
@@ -88,13 +93,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private ToggleButton mockToggleButton;
   private ToggleButton audioCuesButton;
   private ImageButton showVolumeButton;
+  private ImageButton toggleHrConnection;
 
   // For drawer navigation (http://blog.teamtreehouse.com/add-navigation-drawer-android)
-  private ListView mDrawerList;
-  private ArrayAdapter<String> mAdapter;
   private ActionBarDrawerToggle mDrawerToggle;
-  private DrawerLayout mDrawerLayout;
-  private String mActivityTitle;
   // prefs
   private SharedPreferences SP;
 
@@ -335,6 +337,8 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     getMenuInflater().inflate(R.menu.menu_main, menu);
 
     if (!bluetoothEnabled) {
+      toggleHrConnection.setImageResource(R.drawable.bt_disabled);
+      toggleHrConnection.setEnabled(false);
       menu.findItem(R.id.menu_connect).setVisible(false);
       menu.findItem(R.id.menu_connect).setEnabled(false);
       menu.findItem(R.id.menu_disconnect).setVisible(false);
@@ -342,17 +346,21 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
       return true;
     }
 
+    toggleHrConnection.setImageResource(R.drawable.bt_enabled);
+    toggleHrConnection.setEnabled(true);
     mockToggleButton.setVisibility(View.INVISIBLE);
     toggleHrMocking(false);
 
     switch (hrSensorConnectionState) {
       case CONNECTING:
       case CONNECTED:
+        toggleHrConnection.setImageResource(R.drawable.bt_connected);
         menu.findItem(R.id.menu_connect).setVisible(false);
         menu.findItem(R.id.menu_disconnect).setVisible(true);
         break;
       case DISCONNECTING:
       case DISCONNECTED:
+        toggleHrConnection.setImageResource(R.drawable.bt_enabled);
         menu.findItem(R.id.menu_connect).setVisible(true);
         menu.findItem(R.id.menu_disconnect).setVisible(false);
 
@@ -367,15 +375,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     final int id = item.getItemId();
     switch (id) {
       case R.id.menu_connect:
-        autoReconnect = true;
         userClickedConnectHrSensor();
         return true;
       case R.id.menu_disconnect:
-        autoReconnect = false;
+
         userClickedDisconnectHrSensor();
-        return true;
-      case R.id.menu_settings:
-        startActivity(new Intent(this, SettingsActivity.class));
         return true;
     }
 
@@ -396,6 +400,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   public void onConfigurationChanged(Configuration newConfig) {
     super.onConfigurationChanged(newConfig);
     mDrawerToggle.onConfigurationChanged(newConfig);
+  }
+
+  private void startSettingsActivity() {
+    startActivity(new Intent(this, SettingsActivity.class));
   }
 
   private void toggleHrMocking(final boolean isEnabled) {
@@ -473,47 +481,65 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         }
       }
     });
+    toggleHrConnection = (ImageButton) findViewById(R.id.toggleHrConnection);
+    toggleHrConnection.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        switch(hrSensorConnectionState) {
+          case CONNECTED:
+          case CONNECTING:
+            userClickedDisconnectHrSensor(); break;
+          case DISCONNECTED:
+          case DISCONNECTING:
+            userClickedConnectHrSensor(); break;
+        }
+
+      }
+    });
   }
 
   private void initDrawer() {
-    mDrawerList = (ListView) findViewById(R.id.navList);
-    mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
-    mActivityTitle = getTitle().toString();
+    final DrawerLayout drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+    ListView drawerList = (ListView) findViewById(R.id.navList);
+    final String activityTitle = getTitle().toString();
 
-    final String[] osArray = {"Android", "iOS", "Windows", "OS X", "Linux"};
-    mAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, osArray);
-    mDrawerList.setAdapter(mAdapter);
-    mDrawerList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+    final DrawerItem[] drawerItems = new DrawerItem[]{new DrawerItem("Settings", R.drawable.ic_settings)};
+    drawerList.setAdapter(new DrawerItemAdapter(this, Arrays.asList(drawerItems)));
+    drawerList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
       @Override
       public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        Toast.makeText(MainActivity.this, "Time for an upgrade!", Toast.LENGTH_SHORT).show();
+        drawerLayout.closeDrawers();
+        switch (position) {
+          case 0:
+            startSettingsActivity();
+            break;
+        }
       }
     });
 
-    mDrawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout,
+    mDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout,
             R.string.drawer_open, R.string.drawer_close) {
 
       /** Called when a drawer has settled in a completely open state. */
       public void onDrawerOpened(View drawerView) {
         super.onDrawerOpened(drawerView);
-        getSupportActionBar().setTitle("Navigation!");
+        getSupportActionBar().setTitle(R.string.drawer_open_title);
         invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
       }
 
       /** Called when a drawer has settled in a completely closed state. */
       public void onDrawerClosed(View view) {
         super.onDrawerClosed(view);
-        getSupportActionBar().setTitle(mActivityTitle);
+        getSupportActionBar().setTitle(activityTitle);
         invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
       }
     };
 
     mDrawerToggle.setDrawerIndicatorEnabled(true);
-    mDrawerLayout.setDrawerListener(mDrawerToggle);
+    drawerLayout.setDrawerListener(mDrawerToggle);
 
     getSupportActionBar().setDisplayHomeAsUpEnabled(true);
     getSupportActionBar().setHomeButtonEnabled(true);
-
   }
 
   private void showVolumeControl() {
@@ -542,7 +568,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
   private void refreshUi() {
     refreshHRSensorConnectionIndicator();
-
     if (!bluetoothEnabled) {
       setHeartRateUnknown();
     }
@@ -657,6 +682,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
   private void userClickedConnectHrSensor() {
 
+    autoReconnect = true;
     if (CONNECTED == hrSensorConnectionState) {
       Log.i(TAG, "userClickedConnectHrSensor(): already connected");
       return;
@@ -704,6 +730,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
   private void userClickedDisconnectHrSensor() {
     Log.i(TAG, "userClickedDisconnectHrSensor()");
+    autoReconnect = false;
     if (DISCONNECTED == hrSensorConnectionState) {
       Log.i(TAG, "userClickedDisconnectHrSensor(): already disconnected.");
       return;
@@ -711,7 +738,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     if (hrSensorService != null) {
       hrSensorConnectionState = DISCONNECTING;
 //      setHeartRatePending();
-//      refreshUi();
+      refreshUi();
       hrSensorService.disconnectFromDevice();
     }
   }
@@ -919,6 +946,39 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
   };
 
+  public class DrawerItem {
+    public String name;
+    public int icon;
+
+    public DrawerItem(String name, int icon) {
+      this.name = name;
+      this.icon = icon;
+    }
+  }
+
+  public class DrawerItemAdapter extends ArrayAdapter<DrawerItem> {
+    public DrawerItemAdapter(Context context, List<DrawerItem> objects) {
+      super(context, 0, objects);
+    }
+
+    @Override
+    public View getView(int position, View convertView, ViewGroup parent) {
+      // Get the data item for this position
+      DrawerItem drawerItem = getItem(position);
+      // Check if an existing view is being reused, otherwise inflate the view
+      if (convertView == null) {
+        convertView = LayoutInflater.from(getContext()).inflate(R.layout.drawer_item, parent, false);
+      }
+      // Lookup view for data population
+      TextView tvName = (TextView) convertView.findViewById(R.id.name);
+      ImageView tvIcon = (ImageView) convertView.findViewById(R.id.icon);
+      // Populate the data into the template view using the data object
+      tvName.setText(drawerItem.name);
+      tvIcon.setImageResource(drawerItem.icon);
+      // Return the completed view to render on screen
+      return convertView;
+    }
+  }
 }
 
 
