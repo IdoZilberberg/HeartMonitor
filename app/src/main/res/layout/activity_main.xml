@@ -34,7 +34,7 @@
           android:layout_gravity="center_horizontal"
           android:layout_weight="4"
           android:gravity="center_vertical|center_horizontal"
-          android:text="@string/username"
+          tools:text="@string/username"
           android:textColor="@color/buttonForeground"
           android:textSize="36sp"
           />
@@ -56,7 +56,7 @@
           android:background="@color/buttonBackground"
           android:contentDescription="@string/showVolumeDescription"
           android:scaleType="centerInside"
-          android:src="@drawable/ic_equalizer"/>
+          android:src="@drawable/ic_action_equalizer"/>
 
       <ToggleButton
           android:id="@+id/audioCuesButton"
@@ -93,6 +93,7 @@
         android:background="@color/buttonBackground"
         android:textOff="Mock On"
         android:textOn="Mock Off"
+        tools:visibility="visible"
         android:textSize="18sp"
         android:visibility="invisible"/>
 
@@ -150,19 +151,36 @@
           android:layout_width="0px"
           android:layout_height="wrap_content"
           android:layout_weight="1"
+          android:src="@drawable/bt_disabled"
           android:contentDescription="@string/desc_bluetooth_connection"/>
 
     </LinearLayout>
 
-    <ToggleButton
-        android:id="@+id/loggingToggleButton"
-        android:layout_width="fill_parent"
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="0.5"
-        android:background="@color/buttonBackground"
-        android:textOff="Start logging"
-        android:textOn="Stop logging"
-        android:textSize="32sp"/>
+        android:layout_weight="0.5">
+
+      <ToggleButton
+          android:id="@+id/loggingToggleButton"
+          android:layout_width="0dp"
+          android:layout_height="fill_parent"
+          android:background="@color/buttonBackground"
+          android:textOff="Start logging"
+          android:textOn="Stop logging"
+          android:textSize="32sp"
+          android:layout_weight="5"/>
+
+      <ImageView
+          android:layout_width="0dp"
+          android:layout_height="fill_parent"
+          android:id="@+id/loggingIndicator"
+          android:background="@color/buttonBackground"
+          android:src="@drawable/red_disc"
+          android:layout_weight="1"/>
+
+    </LinearLayout>
 
     <ProgressBar
         android:id="@+id/heartRateMemoryDataProgressBar"

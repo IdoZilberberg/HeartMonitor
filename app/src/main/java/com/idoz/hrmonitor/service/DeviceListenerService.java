@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.idoz.hrmonitor;
+package com.idoz.hrmonitor.service;
 
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
@@ -33,6 +33,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
+import com.idoz.hrmonitor.SampleGattAttributes;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -42,9 +44,9 @@ import java.util.UUID;
  * <p>
  * Copied as-is from BluetoothLeGatt sample
  */
-public class HRSensorService extends Service {
+public class DeviceListenerService extends Service {
 
-  private final static String TAG = HRSensorService.class.getSimpleName();
+  private final static String TAG = DeviceListenerService.class.getSimpleName();
   private BluetoothAdapter bluetoothAdapter;
 
   private final static String deviceAddressConst = "00:22:D0:76:1C:E9"; // my device!
@@ -69,8 +71,8 @@ public class HRSensorService extends Service {
           UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT);
 
   public class LocalBinder extends Binder {
-    HRSensorService getService() {
-      return HRSensorService.this;
+    public DeviceListenerService getService() {
+      return DeviceListenerService.this;
     }
   }
 
@@ -95,7 +97,7 @@ public class HRSensorService extends Service {
 
   @Override
   public IBinder onBind(Intent intent) {
-    Log.i(TAG, "Binding HR Sensor service");
+    Log.i(TAG, "Binding Device Listener service");
     return binder;
   }
 
@@ -127,7 +129,7 @@ public class HRSensorService extends Service {
     }
     // We want to directly connect to the device, so we are setting the autoConnect
     // parameter to false.
-    Log.i(TAG, "Trying to connect to HR Sensor...");
+    Log.i(TAG, "Trying to connect to heartrate device...");
     deviceCommunicator = device.connectGatt(this, false, deviceConnectionStateCallback);
     return true;
   }
@@ -147,7 +149,7 @@ public class HRSensorService extends Service {
     public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
       switch (newState) {
         case BluetoothProfile.STATE_CONNECTED:
-          Log.i(TAG, "Connected to HR Sensor, starting service discovery.");
+          Log.i(TAG, "Connected to heartrate device, starting service discovery.");
           handler.removeCallbacks(onServiceDiscoveryTimeout);
           handler.postDelayed(onServiceDiscoveryTimeout, 5000);
           if (deviceCommunicator == null) {
@@ -156,7 +158,7 @@ public class HRSensorService extends Service {
           deviceCommunicator.discoverServices();
           break;
         case BluetoothProfile.STATE_DISCONNECTED:
-          Log.i(TAG, "Disconnected from HR Sensor.");
+          Log.i(TAG, "Disconnected from heartrate device.");
           tryClose();
           break;
       }
@@ -271,7 +273,7 @@ public class HRSensorService extends Service {
    * released properly.
    */
   private void tryClose() {
-    Log.i(TAG, "tryClose(): closing connection to HR sensor");
+    Log.i(TAG, "tryClose(): closing connection to heartrate device");
     if (deviceCommunicator == null) {
       return;
     }

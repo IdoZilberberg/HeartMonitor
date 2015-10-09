@@ -45,7 +45,7 @@
   <string name="heartrate_pending">...</string>
   <string name="heartrate_error">ERR</string>
   <string name="setting_username">username</string>
-  <string name="setting_sensor_autoconnect">sensorAutoConnect</string>
+  <string name="setting_device_autoconnect">deviceAutoConnect</string>
   <string name="setting_max_hr">maxHeartRate</string>
   <string name="setting_min_hr">minHeartRate</string>
   <string name="setting_alert_outside_hr_range">alertOutsideHrRange</string>
@@ -62,4 +62,6 @@
   <string name="drawer_close">Close navigation drawer</string>
   <string name="drawer_open_title">Go to...</string>
   <string name="toggleHrConnectionDescription">Toggle HR connection</string>
+  <string name="drawer_settings_title">Settings</string>
+  <string name="drawer_devices_title">Devices</string>
 </resources>

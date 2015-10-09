@@ -15,9 +15,9 @@
         android:numeric="integer|signed"
         android:title="Min heart rate"/>
     <CheckBoxPreference
-        android:key="@string/setting_sensor_autoconnect"
-        android:title="Auto-connect sensor"
-        android:summary="Connect to the first heart rate sensor found"
+        android:key="@string/setting_device_autoconnect"
+        android:title="Auto-connect device"
+        android:summary="Connect to the first heartrate device found"
         android:defaultValue="false"/>
     <CheckBoxPreference
         android:key="@string/setting_alert_outside_hr_range"

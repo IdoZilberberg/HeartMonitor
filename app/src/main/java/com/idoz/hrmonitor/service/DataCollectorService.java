@@ -1,4 +1,4 @@
-package com.idoz.hrmonitor;
+package com.idoz.hrmonitor.service;
 
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -12,6 +12,8 @@ import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
+import com.idoz.hrmonitor.AudioTrackPlayer;
+import com.idoz.hrmonitor.R;
 import com.idoz.hrmonitor.logger.HeartRateAggregatorLogger;
 import com.idoz.hrmonitor.logger.HeartRateFullLogger;
 import com.idoz.hrmonitor.logger.HeartRateLogger;
@@ -22,9 +24,9 @@ import java.util.List;
 /**
  * Created by izilberberg on 9/19/15.
  */
-public class HrLoggerService extends Service implements SharedPreferences.OnSharedPreferenceChangeListener{
+public class DataCollectorService extends Service implements SharedPreferences.OnSharedPreferenceChangeListener{
 
-  private final static String TAG = HrLoggerService.class.getSimpleName();
+  private final static String TAG = DataCollectorService.class.getSimpleName();
   private List<HeartRateLogger> loggers;
 
   // const
@@ -65,7 +67,7 @@ public class HrLoggerService extends Service implements SharedPreferences.OnShar
     handler = new Handler();
     audioTrackPlayer = new AudioTrackPlayer();
     createLoggers();
-    registerReceiver(hrSensorBroadcastReceiver, new IntentFilter(HRSensorService.ACTION_DATA_AVAILABLE));
+    registerReceiver(hrDeviceBroadcastReceiver, new IntentFilter(DeviceListenerService.ACTION_DATA_AVAILABLE));
     initPrefs();
     return super.onStartCommand(intent, flags, startId);
   }
@@ -105,7 +107,7 @@ public class HrLoggerService extends Service implements SharedPreferences.OnShar
 
   private void cleanup() {
     Log.i(TAG, "Cleaning up...");
-    unregisterReceiver(hrSensorBroadcastReceiver);
+    unregisterReceiver(hrDeviceBroadcastReceiver);
     stopLogging();
     stopSelf();
   }
@@ -126,8 +128,8 @@ public class HrLoggerService extends Service implements SharedPreferences.OnShar
   }
 
   public class LocalBinder extends Binder {
-    HrLoggerService getService() {
-      return HrLoggerService.this;
+    public DataCollectorService getService() {
+      return DataCollectorService.this;
     }
   }
 
@@ -139,7 +141,7 @@ public class HrLoggerService extends Service implements SharedPreferences.OnShar
     return binder;
   }
 
-  void onReceiveHeartRateData(final int heartRate) {
+  public void onReceiveHeartRateData(final int heartRate) {
     Log.d(TAG, ">> Received HR data: " + heartRate);
     setIsBackToNormalHrRange(lastHeartRate, heartRate);
     for (HeartRateLogger logger : loggers) {
@@ -213,14 +215,14 @@ public class HrLoggerService extends Service implements SharedPreferences.OnShar
   }
 
 
-  private final BroadcastReceiver hrSensorBroadcastReceiver = new BroadcastReceiver() {
+  private final BroadcastReceiver hrDeviceBroadcastReceiver = new BroadcastReceiver() {
     @Override
     public void onReceive(Context context, Intent intent) {
       final String action = intent.getAction();
-      if (!HRSensorService.ACTION_DATA_AVAILABLE.equals(action)) {
+      if (!DeviceListenerService.ACTION_DATA_AVAILABLE.equals(action)) {
         return;
       }
-      final String heartRateStr = intent.getStringExtra(HRSensorService.EXTRA_DATA);
+      final String heartRateStr = intent.getStringExtra(DeviceListenerService.EXTRA_DATA);
       try {
         final int heartRate = Integer.parseInt(heartRateStr);
         onReceiveHeartRateData(heartRate);

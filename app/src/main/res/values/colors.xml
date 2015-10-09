@@ -9,4 +9,5 @@
   <color name="textColorHrNA">#666666</color>
   <color name="buttonBackground">#005533</color>
   <color name="buttonForeground">#ffff8800</color>
+  <drawable name="buttonBackground">@color/buttonBackground</drawable>
 </resources>
