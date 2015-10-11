@@ -69,7 +69,8 @@ public class DataCollectorService extends Service implements SharedPreferences.O
     createLoggers();
     registerReceiver(hrDeviceBroadcastReceiver, new IntentFilter(DeviceListenerService.ACTION_DATA_AVAILABLE));
     initPrefs();
-    return super.onStartCommand(intent, flags, startId);
+//    return super.onStartCommand(intent, flags, startId);
+    return START_STICKY;
   }
 
   @Override
