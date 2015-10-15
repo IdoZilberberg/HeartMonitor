@@ -56,7 +56,7 @@
           android:background="@color/buttonBackground"
           android:contentDescription="@string/showVolumeDescription"
           android:scaleType="centerInside"
-          android:src="@drawable/ic_action_equalizer"/>
+          android:src="@drawable/vol_control"/>
 
       <ToggleButton
           android:id="@+id/audioCuesButton"

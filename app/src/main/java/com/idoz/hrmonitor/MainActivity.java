@@ -506,7 +506,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     final String activityTitle = getTitle().toString();
 
     final DrawerItem[] drawerItems = new DrawerItem[]{
-            new DrawerItem(getString(R.string.drawer_devices_title), R.drawable.hrmonitor_logo_black),
+            new DrawerItem(getString(R.string.drawer_devices_title), R.drawable.hr_settings_black),
             new DrawerItem(getString(R.string.drawer_settings_title), R.drawable.drawer_settings_icon)};
     drawerList.setAdapter(new DrawerItemAdapter(this, Arrays.asList(drawerItems)));
     drawerList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
