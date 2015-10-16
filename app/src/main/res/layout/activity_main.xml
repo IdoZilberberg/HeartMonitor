@@ -62,7 +62,6 @@
           android:id="@+id/audioCuesButton"
           android:layout_width="0dp"
           android:layout_height="wrap_content"
-          android:layout_centerVertical="true"
           android:layout_weight="1.5"
           android:background="@drawable/audio_cues"
           android:contentDescription="@string/audioCuesButtonDescription"
@@ -104,10 +103,15 @@
         android:text="@string/heartrate_unknown"
         android:textColor="@android:color/white"/>
 
-    <ImageView
+    <TextView
+        android:id="@+id/deviceDetailsText"
         android:layout_width="fill_parent"
         android:layout_height="0px"
-        android:layout_weight="0.5"
+        style="@style/deviceText"
+        android:text="@string/device_unknown"
+        android:textColor="@color/buttonForeground"
+        android:layout_weight="0.3"
+        android:visibility="visible"
         />
 
     <LinearLayout
@@ -198,6 +202,6 @@
       android:id="@+id/navList"
       android:layout_width="200dp"
       android:layout_height="match_parent"
-      android:layout_gravity="left|start"
+      android:layout_gravity="start"
       android:background="#ffeeeeee"/>
 </android.support.v4.widget.DrawerLayout>

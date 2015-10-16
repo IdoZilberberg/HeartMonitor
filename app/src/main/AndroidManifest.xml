@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest
-    package="com.idoz.hrmonitor"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest package="com.idoz.hrmonitor"
+          xmlns:android="http://schemas.android.com/apk/res/android"
+          android:versionCode="1"
+          android:versionName="0.1-alpha"
+    >
 
   <!--
 Declare this required feature if you want to make the app available to BLE-capable
@@ -21,7 +23,7 @@ PackageManager.hasSystemFeature(FEATURE_BLUETOOTH_LE)
   <application
       android:name=".HeartMonitorApplication"
       android:allowBackup="true"
-      android:icon="@drawable/hrmonitor_logo_green"
+      android:icon="@drawable/hrmonitor_logo_red2"
       android:label="@string/app_name"
       android:theme="@style/AppTheme">
     <activity
@@ -41,7 +43,7 @@ PackageManager.hasSystemFeature(FEATURE_BLUETOOTH_LE)
         android:label="Settings"/>
 
     <activity
-        android:name=".DeviceScanActivity"
+        android:name=".DeviceSelectionActivity"
         android:label="Device Scan"/>
 
     <service

@@ -23,9 +23,11 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -42,8 +44,8 @@ import java.util.ArrayList;
 /**
  * Activity for scanning and displaying available Bluetooth LE devices.
  */
-public class DeviceScanActivity extends ListActivity {
-  private final static String TAG = DeviceScanActivity.class.getSimpleName();
+public class DeviceSelectionActivity extends ListActivity {
+  private final static String TAG = DeviceSelectionActivity.class.getSimpleName();
   private LeDeviceListAdapter mLeDeviceListAdapter;
   private BluetoothAdapter mBluetoothAdapter;
   private boolean mScanning;
@@ -132,16 +134,18 @@ public class DeviceScanActivity extends ListActivity {
     // Ensures Bluetooth is enabled on the device.  If Bluetooth is not currently enabled,
     // fire an intent to display a dialog asking the user to grant permission to enable it.
     if (!mBluetoothAdapter.isEnabled()) {
-      if (!mBluetoothAdapter.isEnabled()) {
-        Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-        startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-      }
+      finishDueToBluetoothDisabled();
     }
 
     // Initializes list view adapter.
     mLeDeviceListAdapter = new LeDeviceListAdapter();
     setListAdapter(mLeDeviceListAdapter);
     scanLeDevice(true);
+  }
+
+  private void finishDueToBluetoothDisabled() {
+    Toast.makeText(this, "Enable bluetooth to scan for devices" , Toast.LENGTH_SHORT).show();
+    finish();
   }
 
   @Override
@@ -165,8 +169,28 @@ public class DeviceScanActivity extends ListActivity {
       mBluetoothAdapter.stopLeScan(mLeScanCallback);
       mScanning = false;
     }
-//    startActivity(intent);
+
+    onDeviceSelected(device);
+  }
+
+  private void onDeviceSelected(BluetoothDevice device) {
     Toast.makeText(this, "Selected device " + device, Toast.LENGTH_SHORT).show();
+    updateDeviceListenerService(device);
+    updateSelectedDeviceInPreferences(device);
+
+    finish();
+
+  }
+
+  private void updateDeviceListenerService(final BluetoothDevice device) {
+    // TODO
+  }
+
+  private void updateSelectedDeviceInPreferences(final BluetoothDevice device) {
+    final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+    SharedPreferences.Editor editor = prefs.edit();
+    editor.putString(getString(R.string.setting_active_device), device.getName());
+    editor.apply();
   }
 
   private void scanLeDevice(final boolean enable) {
@@ -200,7 +224,7 @@ public class DeviceScanActivity extends ListActivity {
     public LeDeviceListAdapter() {
       super();
       mLeDevices = new ArrayList<>();
-      mInflator = DeviceScanActivity.this.getLayoutInflater();
+      mInflator = DeviceSelectionActivity.this.getLayoutInflater();
     }
 
     public void addDevice(BluetoothDevice device) {

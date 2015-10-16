@@ -28,6 +28,16 @@
     <item name="android:textStyle">bold</item>
     <item name="android:typeface">sans</item>
   </style>
+  <style name="deviceText">
+    <item name="android:layout_width">match_parent</item>
+    <item name="android:layout_height">0px</item>
+    <item name="android:gravity">center_vertical|center_horizontal|fill_vertical</item>
+    <item name="android:textSize">@dimen/device_text</item>
+    <item name="android:textStyle">bold</item>
+    <item name="android:typeface">sans</item>
+  </style>
+
+
   <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar"/>
   <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light"/>
 </resources>

@@ -94,7 +94,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
   private ProgressBar heartRateMemoryDataProgressBar;
   private ToggleButton mockToggleButton;
   private ToggleButton audioCuesButton;
-  private ImageButton showVolumeButton;
   private ImageButton toggleHrConnection;
 
   // For drawer navigation (http://blog.teamtreehouse.com/add-navigation-drawer-android)
@@ -181,6 +180,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     tryRegisterHRDeviceBroadcastReceiver();
     initNotifications();
     updateNotifications();
+    refreshActiveDeviceText();
   }
 
   @Override
@@ -265,7 +265,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     Log.i(TAG, "=== updateNotifications() ===");
 
     final NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
-            .setSmallIcon(R.drawable.hrmonitor_logo_white_outline)
+            .setSmallIcon(R.drawable.hrmonitor_logo_white)
             .setContentIntent(contentIntent)
             .setContentTitle("Heartrate Monitor")
             .setContentText("OPEN")
@@ -464,7 +464,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         editor.apply();
       }
     });
-    showVolumeButton = (ImageButton) findViewById(R.id.showVolumeButton);
+    final ImageButton showVolumeButton = (ImageButton) findViewById(R.id.showVolumeButton);
     showVolumeButton.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
@@ -507,7 +507,9 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     final DrawerItem[] drawerItems = new DrawerItem[]{
             new DrawerItem(getString(R.string.drawer_devices_title), R.drawable.hr_settings_black),
-            new DrawerItem(getString(R.string.drawer_settings_title), R.drawable.drawer_settings_icon)};
+            new DrawerItem(getString(R.string.drawer_settings_title), R.drawable.drawer_settings_icon),
+            new DrawerItem("About", R.drawable.ic_about)
+    };
     drawerList.setAdapter(new DrawerItemAdapter(this, Arrays.asList(drawerItems)));
     drawerList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
       @Override
@@ -515,7 +517,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         drawerLayout.closeDrawers();
         switch (position) {
           case 0:
-            startActivity(new Intent(MainActivity.this, DeviceScanActivity.class));
+            startActivity(new Intent(MainActivity.this, DeviceSelectionActivity.class));
             //Toast.makeText(MainActivity.this, "Device Settings", Toast.LENGTH_SHORT).show();
             break;
           case 1:
@@ -579,7 +581,13 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     if (!bluetoothEnabled) {
       setHeartRateUnknown();
     }
+    refreshActiveDeviceText();
     invalidateOptionsMenu();
+  }
+
+  private void refreshActiveDeviceText() {
+    final TextView activeDeviceTv = (TextView)findViewById(R.id.deviceDetailsText);
+    activeDeviceTv.setText(SP.getString(getString(R.string.setting_active_device), getString(R.string.device_unknown)));
   }
 
   private void createBluetoothOnOffStateReceiver() {
@@ -778,7 +786,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     } else {
       heartRateText.setTypeface(null, Typeface.NORMAL);
     }
-    heartRateText.setText(Integer.toString(newHeartRate));
+    heartRateText.setText(String.format("%d", newHeartRate));
   }
 
   private void setHeartRatePending() {
