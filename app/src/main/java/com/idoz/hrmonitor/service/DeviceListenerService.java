@@ -70,12 +70,23 @@ public class DeviceListenerService extends Service {
   public final static UUID UUID_HEART_RATE_MEASUREMENT =
           UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT);
 
+  public void updateActiveDevice(final BluetoothDevice device) {
+    if( deviceAddress.equals(device.getAddress()))  {
+      Log.d(TAG, "Same active device selected, no need to reconnect");
+      return;
+    }
+    Log.i(TAG, "Switching from device " + deviceAddress + " to device " + device.getAddress());
+    deviceAddress = device.getAddress();
+    disconnectFromDevice();
+    connectToDevice();
+
+  }
+
   public class LocalBinder extends Binder {
     public DeviceListenerService getService() {
       return DeviceListenerService.this;
     }
   }
-
   private final IBinder binder = new LocalBinder();
 
   @Override

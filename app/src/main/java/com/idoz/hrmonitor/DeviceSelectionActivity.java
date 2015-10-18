@@ -21,12 +21,15 @@ import android.app.ListActivity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -38,6 +41,8 @@ import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.idoz.hrmonitor.service.DeviceListenerService;
 
 import java.util.ArrayList;
 
@@ -54,6 +59,8 @@ public class DeviceSelectionActivity extends ListActivity {
   private static final int REQUEST_ENABLE_BT = 1;
   // Stops scanning after 10 seconds.
   private static final long SCAN_PERIOD = 10000;
+  private DeviceListenerService deviceListenerService;
+  private DeviceListenerServiceConnection deviceListenerServiceConnection;
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -123,6 +130,7 @@ public class DeviceSelectionActivity extends ListActivity {
   protected void onPause() {
     super.onPause();
     Log.i(TAG, "$$$ onPause");
+    tryUnbindDeviceListenerService();
     scanLeDevice(false);
     mLeDeviceListAdapter.clear();
   }
@@ -136,7 +144,7 @@ public class DeviceSelectionActivity extends ListActivity {
     if (!mBluetoothAdapter.isEnabled()) {
       finishDueToBluetoothDisabled();
     }
-
+    tryBindDeviceListenerService();
     // Initializes list view adapter.
     mLeDeviceListAdapter = new LeDeviceListAdapter();
     setListAdapter(mLeDeviceListAdapter);
@@ -144,7 +152,7 @@ public class DeviceSelectionActivity extends ListActivity {
   }
 
   private void finishDueToBluetoothDisabled() {
-    Toast.makeText(this, "Enable bluetooth to scan for devices" , Toast.LENGTH_SHORT).show();
+    Toast.makeText(this, "Enable bluetooth to scan for devices", Toast.LENGTH_SHORT).show();
     finish();
   }
 
@@ -170,23 +178,24 @@ public class DeviceSelectionActivity extends ListActivity {
       mScanning = false;
     }
 
-    onDeviceSelected(device);
+    onActiveDeviceSelected(device);
   }
 
-  private void onDeviceSelected(BluetoothDevice device) {
+  private void onActiveDeviceSelected(BluetoothDevice device) {
     Toast.makeText(this, "Selected device " + device, Toast.LENGTH_SHORT).show();
-    updateDeviceListenerService(device);
-    updateSelectedDeviceInPreferences(device);
+    updateActiveDeviceInDeviceListenerService(device);
+    updateActiveDeviceInPreferences(device);
 
     finish();
 
   }
 
-  private void updateDeviceListenerService(final BluetoothDevice device) {
+  private void updateActiveDeviceInDeviceListenerService(final BluetoothDevice device) {
+    deviceListenerService.updateActiveDevice(device);
     // TODO
   }
 
-  private void updateSelectedDeviceInPreferences(final BluetoothDevice device) {
+  private void updateActiveDeviceInPreferences(final BluetoothDevice device) {
     final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
     SharedPreferences.Editor editor = prefs.edit();
     editor.putString(getString(R.string.setting_active_device), device.getName());
@@ -228,7 +237,7 @@ public class DeviceSelectionActivity extends ListActivity {
     }
 
     public void addDevice(BluetoothDevice device) {
-      if(!mLeDevices.contains(device)) {
+      if (!mLeDevices.contains(device)) {
         mLeDevices.add(device);
       }
     }
@@ -302,4 +311,37 @@ public class DeviceSelectionActivity extends ListActivity {
     TextView deviceName;
     TextView deviceAddress;
   }
+
+  private void tryBindDeviceListenerService() {
+    if (deviceListenerServiceConnection == null) {
+      deviceListenerServiceConnection = new DeviceListenerServiceConnection();
+      boolean bindResult = bindService(
+              new Intent(this, DeviceListenerService.class), deviceListenerServiceConnection, BIND_AUTO_CREATE);
+      Log.i(TAG, "Bind to HR device listener service success? " + bindResult);
+    }
+  }
+
+  private void tryUnbindDeviceListenerService() {
+    if (deviceListenerServiceConnection != null) {
+      Log.i(TAG, "Unbinding from HR device listener service...");
+      unbindService(deviceListenerServiceConnection);
+      deviceListenerServiceConnection = null;
+    }
+  }
+
+  private class DeviceListenerServiceConnection implements ServiceConnection {
+    @Override
+    public void onServiceConnected(ComponentName className,
+                                   IBinder service) {
+      // We've bound to LocalService, cast the IBinder and get LocalService instance
+      DeviceListenerService.LocalBinder binder = (DeviceListenerService.LocalBinder) service;
+      deviceListenerService = binder.getService();
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName arg0) {
+      deviceListenerService = null;
+    }
+  }
+
 }
